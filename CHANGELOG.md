@@ -9,13 +9,18 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Agregado
+### Agregado (FASE 1 + FASE 2)
 - Método de renderizado SVG con wand (ImageMagick) como alternativa
 - Tests completos para módulo comparator (15 tests)
-- Tests completos para módulo svg_generator (20 tests)
-- Tests completos para módulo vision (18 tests)
+- Tests completos para módulo svg_generator (26 tests)
+- Tests completos para módulo vision (22 tests)
 - Tests de manejo de errores y reintentos (12 tests)
 - Tests de validación de entrada (16 tests)
+- Tests de integración E2E (10 tests)
+- Tests de CLI (12 tests)
+- GitHub Actions CI/CD (tests + linting)
+- Workflow para múltiples OS y versiones Python
+- Coverage tracking con Codecov
 - Validación de métodos de renderizado disponibles
 - Mensajes de error con instrucciones de instalación
 - Extracción de SVG desde markdown code blocks
@@ -34,6 +39,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Google Gemini ahora usa PIL Image correctamente
 - Todas las llamadas a APIs ahora tienen reintentos automáticos
 - CLI ahora valida parámetros antes de ejecutar
+- Cobertura de tests aumentada de 0% a ~85%
 
 ### Arreglado
 - Renderizado SVG ahora falla explícitamente si no hay método disponible

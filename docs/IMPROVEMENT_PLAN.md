@@ -43,12 +43,12 @@ Este documento detalla el plan de mejoras para llevar Vectorizer AI de un protot
 
 | # | Tarea | Prioridad | Esfuerzo | Estado |
 |---|-------|-----------|----------|--------|
-| 2.1 | Tests unitarios - VisionAnalyzer | 🔴 Alta | 2h | ⏳ Pendiente |
-| 2.2 | Tests unitarios - SVGGenerator | 🔴 Alta | 2h | ⏳ Pendiente |
-| 2.3 | Tests unitarios - ImageComparator | 🔴 Alta | 2h | ⏳ Pendiente |
-| 2.4 | Tests de integración - Core | 🔴 Alta | 3h | ⏳ Pendiente |
-| 2.5 | Tests de CLI | 🟡 Media | 1h | ⏳ Pendiente |
-| 2.6 | Configurar CI/CD básico | 🟡 Media | 2h | ⏳ Pendiente |
+| 2.1 | Tests unitarios - VisionAnalyzer | 🔴 Alta | 2h | ✅ Completado |
+| 2.2 | Tests unitarios - SVGGenerator | 🔴 Alta | 2h | ✅ Completado |
+| 2.3 | Tests unitarios - ImageComparator | 🔴 Alta | 2h | ✅ Completado |
+| 2.4 | Tests de integración - Core | 🔴 Alta | 3h | ✅ Completado |
+| 2.5 | Tests de CLI | 🟡 Media | 1h | ✅ Completado |
+| 2.6 | Configurar CI/CD básico | 🟡 Media | 2h | ✅ Completado |
 
 ---
 
