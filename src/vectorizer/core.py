@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class Vectorizer:
-    """Clase principal que orquesta el proceso de vectorización."""
+    """Clase principal que orchestra el proceso de vectorización."""
 
     def __init__(
         self,
@@ -118,71 +118,88 @@ class Vectorizer:
         current_svg = svg_gen.svg_code
         best_svg = current_svg
         best_quality = 0.0
+        render_success = False
 
         # Fase 3: Iteraciones de refinamiento
+        comparison = None
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"Iteracion {iteration}/{self.max_iterations}")
 
             # Renderizar SVG a PNG
-            temp_png = self.temp_dir / f"iteration_{iteration}.png"
-            self.image_comparator.render_svg(
-                current_svg, str(temp_png), width=1024, height=1024
-            )
+            try:
+                temp_png = self.temp_dir / f"iteration_{iteration}.png"
+                self.image_comparator.render_svg(
+                    current_svg, str(temp_png), width=1024, height=1024
+                )
+                render_success = True
 
-            # Comparar con original
-            comparison = self.image_comparator.compare(str(input_file), str(temp_png))
-            quality = comparison.quality_score
+                # Comparar con original
+                comparison = self.image_comparator.compare(str(input_file), str(temp_png))
+                quality = comparison.quality_score
 
-            logger.info(f"Calidad actual: {quality:.4f}")
+                logger.info(f"Calidad actual: {quality:.4f}")
 
-            # Llamar callback si existe
-            if callback:
-                callback(iteration, quality)
+                # Llamar callback si existe
+                if callback:
+                    callback(iteration, quality)
 
-            # Actualizar mejor SVG si mejoró
-            if quality > best_quality:
-                best_quality = quality
-                best_svg = current_svg
-                logger.info(f"Nuevo mejor SVG! Calidad: {quality:.4f}")
+                # Actualizar mejor SVG si mejoró
+                if quality > best_quality:
+                    best_quality = quality
+                    best_svg = current_svg
+                    logger.info(f"Nuevo mejor SVG! Calidad: {quality:.4f}")
 
-            # Verificar si alcanzamos el umbral
-            if quality >= self.quality_threshold:
-                logger.info(f"Umbral de calidad alcanzado: {quality:.4f}")
-                break
+                # Verificar si alcanzamos el umbral
+                if quality >= self.quality_threshold:
+                    logger.info(f"Umbral de calidad alcanzado: {quality:.4f}")
+                    break
+
+            except Exception as e:
+                logger.warning(f"Error en renderizado: {e}")
+                # Continuamos sin renderizado
+                quality = best_quality
 
             # Fase 4: Refinamiento
             logger.info("Refinando SVG...")
-            modifications = self._generate_modifications(comparison)
+            if render_success:
+                modifications = self._generate_modifications(comparison)
+            else:
+                modifications = ["Mejorar la representación SVG"]
             svg_gen = await self.svg_generator.modify(current_svg, modifications)
             current_svg = svg_gen.svg_code
 
-        # Fase 5: Finalización
-        logger.info("Fase 5: Optimizando SVG final...")
+        # Fase 5: Finalización - GUARDAR SVG SIEMPRE
+        logger.info("Fase 5: Optimizando y guardando SVG...")
+
+        # Optimizar SVG
         optimized_svg = self.svg_generator.optimize(best_svg, level="medium")
 
         # Guardar SVG final
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(optimized_svg)
-
         logger.info(f"SVG guardado en {output_path}")
 
-        # Calcular métricas finales
-        final_png = self.temp_dir / "final.png"
-        self.image_comparator.render_svg(
-            optimized_svg, str(final_png), width=1024, height=1024
-        )
-        final_comparison = self.image_comparator.compare(
-            str(input_file), str(final_png)
-        )
+        # Calcular métricas si el renderizado fue exitoso
+        try:
+            final_png = self.temp_dir / "final.png"
+            self.image_comparator.render_svg(
+                optimized_svg, str(final_png), width=1024, height=1024
+            )
+            final_comparison = self.image_comparator.compare(
+                str(input_file), str(final_png)
+            )
+            final_quality = final_comparison.quality_score
+        except Exception:
+            final_quality = best_quality
 
         return VectorizationResult(
             svg_code=optimized_svg,
-            quality=final_comparison.quality_score,
+            quality=final_quality,
             iterations=iteration,
             metrics={
-                "ssim": final_comparison.ssim,
-                "clip_similarity": final_comparison.clip_similarity,
+                "ssim": getattr(final_comparison, 'ssim', 0.0) if 'final_comparison' in dir() else 0.0,
+                "clip_similarity": getattr(final_comparison, 'clip_similarity', 0.0) if 'final_comparison' in dir() else 0.0,
             },
             metadata={
                 "input_path": str(input_file),

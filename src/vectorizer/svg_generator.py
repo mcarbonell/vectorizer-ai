@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import anthropic
 from openai import OpenAI
+from PIL import Image
 
 from .models import ImageAnalysis, SVGGeneration
 
@@ -35,19 +36,32 @@ class SVGGenerator:
         self.provider = provider
         self.base_url = base_url
 
-        # Inicializar clientes
+        # Inicializar clientes según el proveedor
+        self.anthropic_client = None
+        self.openai_client = None
+        self.google_client = None
+
         if provider == "anthropic":
             self.anthropic_client = anthropic.Anthropic(api_key=api_key)
-            self.openai_client = None
         elif provider in ["openai", "openrouter"]:
             self.openai_client = OpenAI(
                 api_key=api_key,
                 base_url=base_url or "https://openrouter.ai/api/v1",
             )
-            self.anthropic_client = None
-        else:
-            self.anthropic_client = None
-            self.openai_client = None
+        elif provider == "google":
+            # Usar la nueva API google.genai
+            try:
+                from google import genai
+
+                self.google_client = genai.Client(api_key=api_key)
+                self._using_new_google_api = True
+            except ImportError:
+                # Fallback a la API anterior
+                import google.generativeai as genai
+
+                genai.configure(api_key=api_key)
+                self.google_client = genai
+                self._using_new_google_api = False
 
     async def generate(
         self, analysis: ImageAnalysis, style: str = "flat"
@@ -234,6 +248,8 @@ Requisitos:
             return await self._call_anthropic(prompt)
         elif self.provider in ["openai", "openrouter"]:
             return await self._call_openai(prompt)
+        elif self.provider == "google":
+            return await self._call_google(prompt)
         else:
             # Default to anthropic
             return await self._call_anthropic(prompt)
@@ -281,6 +297,37 @@ Requisitos:
         )
 
         return response.choices[0].message.content
+
+    async def _call_google(self, prompt: str) -> str:
+        """Llama a la API de Google Gemini.
+
+        Args:
+            prompt: Prompt para la API.
+
+        Returns:
+            Respuesta de la API.
+        """
+        if getattr(self, "_using_new_google_api", False):
+            # Usar la nueva API google.genai
+            from google import genai
+
+            client: genai.Client = self.google_client
+
+            response = client.models.generate_content(
+                model=self.model,
+                contents=[prompt],
+            )
+
+            return response.text
+        else:
+            # Usar la API anterior google.generativeai
+            import google.generativeai as genai
+
+            model = genai.GenerativeModel(self.model)
+
+            response = model.generate_content([prompt])
+
+            return response.text
 
     def _extract_svg(self, response: str) -> str:
         """Extrae el código SVG de la respuesta.

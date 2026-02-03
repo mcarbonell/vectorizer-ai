@@ -4,12 +4,13 @@ Un vectorizador de imágenes impulsado por inteligencia artificial que utiliza v
 
 ## 🌟 Características
 
-- **Vectorización basada en IA**: Utiliza modelos de visión para analizar y comparar imágenes
+- **Vectorización basada en IA**: Utiliza modelos de visión (Google Gemini 2.5 Flash, Claude, GPT-4V)
 - **Optimización iterativa**: Proceso de refinamiento continuo hasta alcanzar la calidad deseada
 - **Comparación visual**: La IA "ve" las diferencias entre el original y el SVG generado
-- **Sin entrenamiento**: Aprovecha modelos pre-entrenados (Claude, GPT-4V, etc.)
+- **Sin entrenamiento**: Aprovecha modelos pre-entrenados de visión
 - **Múltiples formatos de entrada**: Soporta PNG, JPG, WEBP y más
-- **Salida SVG optimizada**: Genera SVGs limpios y editables
+- **Salida SVG optimizada**: Genera SVGs limpios, editables y con fondo transparente
+- **Métricas automáticas**: SSIM y CLIP para evaluar la calidad del vectorizado
 
 ## 🚀 Cómo funciona
 
@@ -62,7 +63,8 @@ Un vectorizador de imágenes impulsado por inteligencia artificial que utiliza v
 ## 📋 Requisitos
 
 - Python 3.10+
-- API key de Claude (Anthropic) o GPT-4V (OpenAI)
+- API Key de Google Gemini (gratis), Anthropic Claude o OpenAI GPT-4V
+- GTK3 Runtime (para renderizado SVG en Windows)
 - Dependencias del proyecto (ver `requirements.txt`)
 
 ## 📦 Instalación
@@ -79,6 +81,9 @@ source venv/bin/activate  # En Windows: venv\Scripts\activate
 # Instalar dependencias
 pip install -r requirements.txt
 
+# Instalar GTK3 Runtime (Windows, requerido para renderizado)
+winget install --id=tschoonj.GTKForWindows -e
+
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tus API keys
@@ -87,8 +92,11 @@ cp .env.example .env
 ## 🎯 Uso básico
 
 ```bash
-# Vectorizar una imagen
+# Vectorizar una imagen (usa Google Gemini por defecto)
 python -m vectorizer input.png output.svg
+
+# Con proveedor específico
+python -m vectorizer input.png output.svg --provider google --model gemini-2.5-flash
 
 # Con número máximo de iteraciones
 python -m vectorizer input.png output.svg --max-iterations 10
@@ -100,19 +108,29 @@ python -m vectorizer input.png output.svg --quality-threshold 0.9
 python -m vectorizer input.png output.svg --verbose
 ```
 
+### Proveedores soportados:
+
+| Proveedor | Modelo | API Key |
+|-----------|--------|---------|
+| Google Gemini | 2.5 Flash (gratis) | `GOOGLE_API_KEY` |
+| OpenAI | GPT-4V | `OPENAI_API_KEY` |
+| Anthropic | Claude 3.5 Sonnet | `ANTHROPIC_API_KEY` |
+
 ## ⚙️ Configuración
 
 El archivo `.env` permite configurar:
 
 ```env
 # API Keys
+GOOGLE_API_KEY=AI...
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 
 # Configuración del vectorizador
 MAX_ITERATIONS=10
 QUALITY_THRESHOLD=0.85
-DEFAULT_MODEL=claude-3-5-sonnet-20241022
+DEFAULT_PROVIDER=google
+DEFAULT_MODEL=gemini-2.5-flash
 
 # Rutas
 TEMP_DIR=./temp
@@ -164,13 +182,43 @@ pytest tests/test_vision.py
 
 ## 📊 Roadmap
 
-- [x] Concepto y diseño
-- [ ] Prototipo inicial
-- [ ] Integración con APIs de IA
-- [ ] Sistema de métricas de calidad
-- [ ] Interfaz de línea de comandos
-- [ ] Documentación completa
-- [ ] Tests automatizados
+| Estado | Fase |
+|--------|------|
+| [x] | Concepto y diseño |
+| [x] | Prototipo inicial |
+| [x] | Integración con Google Gemini 2.5 Flash |
+| [x] | Sistema de métricas (SSIM + CLIP) |
+| [x] | Interfaz de línea de comandos |
+| [x] | Renderizado SVG con Cairo |
+| [x] | Documentación completa |
+| [ ] | Tests automatizados |
+| [ ] | Integración con Claude/GPT-4V |
+| [ ] | API REST |
+| [ ] | Web UI |
+
+---
+
+## 🏆 Primera prueba exitosa
+
+**Fecha**: Febrero 2025
+**Imagen**: Logo "Qualidades consultoria"
+**Resultado**: SVG generado con texto editable y fondo transparente
+
+```svg
+<svg viewBox="0 0 500 120">
+  <text fill="#007BFF">Quali</text>
+  <text fill="#2ECC71">dades</text>
+  <text fill="#5A6268">consultoria</text>
+  <polygon points="..." fill="#138496"/>
+</svg>
+```
+
+**Métricas logradas**:
+- CLIP Score: 0.86
+- SSIM: 0.36
+
+---
+
 
 ## 📝 Licencia
 
@@ -186,4 +234,4 @@ Para preguntas o sugerencias, abre un issue en el repositorio.
 
 ---
 
-**Nota**: Este proyecto está en fase de desarrollo activo. La API y la arquitectura pueden cambiar.
+**Nota**: Este proyecto ha alcanzado su primer hito funcional. La API y la arquitectura pueden cambiar.

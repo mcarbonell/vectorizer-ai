@@ -8,6 +8,8 @@
 - pip (gestor de paquetes de Python)
 - git
 - Editor de código (VS Code recomendado)
+- GTK3 Runtime (Windows, requerido para renderizado SVG)
+  - Instalar: `winget install --id=tschoonj.GTKForWindows -e`
 
 ### Configuración Inicial
 

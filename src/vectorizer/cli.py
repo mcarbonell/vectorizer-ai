@@ -5,15 +5,19 @@ import os
 from pathlib import Path
 
 import click
+from dotenv import load_dotenv
 
 from .core import Vectorizer
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
 @click.command()
 @click.argument("input", type=click.Path(exists=True))
-@click.argument("output", type=click.Path)
+@click.argument("output")
 @click.option(
     "--model",
     "-m",
@@ -95,7 +99,7 @@ def main(
     if not api_key:
         click.echo(
             f"Error: API key no encontrada para {provider}. "
-            f"Usa --api-key o configura la variable de entorno соответствующую."
+            f"Usa --api-key o configura la variable de entorno correspondiente."
         )
         return
 

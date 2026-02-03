@@ -7,6 +7,7 @@ from typing import Optional
 
 import anthropic
 from openai import OpenAI
+from PIL import Image
 
 from .models import ImageAnalysis
 
@@ -47,11 +48,19 @@ class VisionAnalyzer:
                 base_url=base_url or "https://openrouter.ai/api/v1",
             )
         elif provider == "google":
-            # Google Gemini usa una API diferente
-            import google.generativeai as genai
+            # Google Gemini usa la nueva API google.genai
+            try:
+                from google import genai
 
-            genai.configure(api_key=api_key)
-            self.client = genai
+                self.client = genai.Client(api_key=api_key)
+                self._using_new_google_api = True
+            except ImportError:
+                # Fallback a la API anterior
+                import google.generativeai as genai
+
+                genai.configure(api_key=api_key)
+                self.client = genai
+                self._using_new_google_api = False
         else:
             raise ValueError(f"Proveedor no soportado: {provider}")
 
@@ -77,7 +86,7 @@ class VisionAnalyzer:
 
         logger.info(f"Analizando imagen: {image_path}")
 
-        # Leer imagen y codificar en base64
+        # Leer imagen
         image_data = self._encode_image(image_file)
 
         # Crear prompt para análisis
@@ -89,29 +98,31 @@ class VisionAnalyzer:
         elif self.provider in ["openai", "openrouter"]:
             response = await self._call_openai(image_data, prompt)
         elif self.provider == "google":
-            response = await self._call_google(image_file)
+            response = await self._call_google(image_file, prompt)
             # El response de Google ya viene parseado
             return response
 
         # Parsear respuesta
         return self._parse_analysis_response(response)
 
-    def _encode_image(self, image_path: Path) -> tuple[str, str, bytes]:
-        """Codifica una imagen en base64.
+    def _encode_image(self, image_path: Path) -> tuple[str, str, Image.Image]:
+        """Codifica una imagen.
 
         Args:
             image_path: Ruta a la imagen.
 
         Returns:
-            Tupla (media_type, base64_data, raw_data).
+            Tupla (media_type, base64_data, pil_image).
         """
         media_type = self._get_media_type(image_path.suffix)
 
-        with open(image_path, "rb") as f:
-            raw_data = f.read()
-            base64_data = base64.b64encode(raw_data).decode("utf-8")
+        # Cargar como PIL Image para Google API
+        pil_image = Image.open(image_path)
 
-        return media_type, base64_data, raw_data
+        with open(image_path, "rb") as f:
+            base64_data = base64.b64encode(f.read()).decode("utf-8")
+
+        return media_type, base64_data, pil_image
 
     def _get_media_type(self, extension: str) -> str:
         """Obtiene el tipo MIME basado en la extensión.
@@ -177,12 +188,12 @@ Además, incluye:
         return base_prompt
 
     async def _call_anthropic(
-        self, image_data: tuple[str, str, bytes], prompt: str
+        self, image_data: tuple[str, str, Image.Image], prompt: str
     ) -> str:
         """Llama a la API de Anthropic.
 
         Args:
-            image_data: Tupla (media_type, base64_data, raw_data).
+            image_data: Tupla (media_type, base64_data, pil_image).
             prompt: Prompt para la API.
 
         Returns:
@@ -214,12 +225,12 @@ Además, incluye:
         return message.content[0].text
 
     async def _call_openai(
-        self, image_data: tuple[str, str, bytes], prompt: str
+        self, image_data: tuple[str, str, Image.Image], prompt: str
     ) -> str:
         """Llama a la API de OpenAI o OpenRouter.
 
         Args:
-            image_data: Tupla (media_type, base64_data, raw_data).
+            image_data: Tupla (media_type, base64_data, pil_image).
             prompt: Prompt para la API.
 
         Returns:
@@ -248,36 +259,45 @@ Además, incluye:
 
         return response.choices[0].message.content
 
-    async def _call_google(self, image_path: Path) -> ImageAnalysis:
+    async def _call_google(
+        self, image_path: Path, prompt: str
+    ) -> ImageAnalysis:
         """Llama a la API de Google Gemini.
 
         Args:
             image_path: Ruta a la imagen.
+            prompt: Prompt para la API.
 
         Returns:
             ImageAnalysis con los datos.
         """
-        import google.generativeai as genai
+        if getattr(self, "_using_new_google_api", False):
+            # Usar la nueva API google.genai
+            from google import genai
 
-        # Cargar la imagen directamente con Gemini
-        model = genai.GenerativeModel(self.model)
+            client: genai.Client = self.client
 
-        prompt = """Analiza esta imagen y proporciona:
+            # Cargar la imagen
+            img = Image.open(image_path)
 
-1. Formas principales presentes
-2. Paleta de colores principales (en formato hexadecimal)
-3. Composición general
-4. Nivel de complejidad (simple, media, compleja)
-5. Estilo visual
-6. Descripción breve
+            response = client.models.generate_content(
+                model=self.model,
+                contents=[prompt, img],
+            )
 
-Responde en formato JSON."""
+            # Parsear la respuesta
+            return self._parse_analysis_response(response.text)
+        else:
+            # Usar la API anterior google.generativeai
+            import google.generativeai as genai
 
-        # Gemini puede procesar la imagen directamente
-        response = model.generate_content([prompt, image_path])
+            model = genai.GenerativeModel(self.model)
 
-        # Parsear la respuesta
-        return self._parse_analysis_response(response.text)
+            # Gemini puede procesar la imagen directamente
+            response = model.generate_content([prompt, image_path])
+
+            # Parsear la respuesta
+            return self._parse_analysis_response(response.text)
 
     def _parse_analysis_response(self, response: str) -> ImageAnalysis:
         """Parsea la respuesta de la API.
