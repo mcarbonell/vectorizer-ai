@@ -69,7 +69,7 @@ Un vectorizador de imágenes impulsado por inteligencia artificial que utiliza v
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/vectorizer-ai.git
+git clone https://github.com/mcarbonell/vectorizer-ai.git
 cd vectorizer-ai
 
 # Crear entorno virtual

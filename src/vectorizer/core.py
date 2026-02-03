@@ -30,6 +30,8 @@ class Vectorizer:
         quality_threshold: float = 0.85,
         temp_dir: str = "./temp",
         verbose: bool = False,
+        provider: str = "anthropic",
+        base_url: Optional[str] = None,
     ) -> None:
         """Inicializa el Vectorizer.
 
@@ -40,6 +42,8 @@ class Vectorizer:
             quality_threshold: Umbral de calidad para detener.
             temp_dir: Directorio para archivos temporales.
             verbose: Mostrar información detallada.
+            provider: Proveedor de API ("anthropic", "openai", "openrouter", "google").
+            base_url: URL base personalizada (para OpenRouter, etc.).
         """
         self.api_key = api_key
         self.model = model
@@ -47,13 +51,19 @@ class Vectorizer:
         self.quality_threshold = quality_threshold
         self.temp_dir = Path(temp_dir)
         self.verbose = verbose
+        self.provider = provider
+        self.base_url = base_url
 
         # Crear directorio temporal si no existe
         self.temp_dir.mkdir(parents=True, exist_ok=True)
 
         # Inicializar componentes
-        self.vision_analyzer = VisionAnalyzer(api_key=api_key, model=model)
-        self.svg_generator = SVGGenerator(api_key=api_key, model=model)
+        self.vision_analyzer = VisionAnalyzer(
+            api_key=api_key, model=model, provider=provider, base_url=base_url
+        )
+        self.svg_generator = SVGGenerator(
+            api_key=api_key, model=model, provider=provider, base_url=base_url
+        )
         self.image_comparator = ImageComparator()
         self.metrics_engine = MetricsEngine()
 
@@ -95,12 +105,12 @@ class Vectorizer:
         if not input_file.exists():
             raise FileNotFoundError(f"Archivo no encontrado: {input_path}")
 
-        logger.info(f"Iniciando vectorización de {input_path}")
+        logger.info(f"Iniciando vectorizacion de {input_path}")
 
         # Fase 1: Análisis inicial
         logger.info("Fase 1: Analizando imagen...")
         analysis = await self.vision_analyzer.analyze(str(input_file))
-        logger.info(f"Análisis completado: {analysis.description}")
+        logger.info(f"Analisis completado: {analysis.description}")
 
         # Fase 2: Generación inicial
         logger.info("Fase 2: Generando SVG inicial...")
@@ -111,7 +121,7 @@ class Vectorizer:
 
         # Fase 3: Iteraciones de refinamiento
         for iteration in range(1, self.max_iterations + 1):
-            logger.info(f"Iteración {iteration}/{self.max_iterations}")
+            logger.info(f"Iteracion {iteration}/{self.max_iterations}")
 
             # Renderizar SVG a PNG
             temp_png = self.temp_dir / f"iteration_{iteration}.png"
@@ -133,7 +143,7 @@ class Vectorizer:
             if quality > best_quality:
                 best_quality = quality
                 best_svg = current_svg
-                logger.info(f"¡Nuevo mejor SVG! Calidad: {quality:.4f}")
+                logger.info(f"Nuevo mejor SVG! Calidad: {quality:.4f}")
 
             # Verificar si alcanzamos el umbral
             if quality >= self.quality_threshold:
@@ -180,6 +190,7 @@ class Vectorizer:
                 "model": self.model,
                 "max_iterations": self.max_iterations,
                 "quality_threshold": self.quality_threshold,
+                "provider": self.provider,
             },
         )
 
@@ -199,12 +210,12 @@ class Vectorizer:
             issue = diff.get("issue", "")
 
             if issue == "color_mismatch":
-                modifications.append(f"Ajustar colores en el área {area}")
+                modifications.append(f"Ajustar colores en el area {area}")
             elif issue == "shape_precision":
-                modifications.append(f"Mejorar precisión de formas en {area}")
+                modifications.append(f"Mejorar precision de formas en {area}")
             elif issue == "missing_details":
                 modifications.append(f"Agregar detalles faltantes en {area}")
             elif issue == "alignment":
-                modifications.append(f"Corregir alineación en {area}")
+                modifications.append(f"Corregir alineacion en {area}")
 
         return modifications

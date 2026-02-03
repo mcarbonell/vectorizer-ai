@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import List
+from typing import List, Optional
 
 import anthropic
 from openai import OpenAI
@@ -16,20 +16,38 @@ class SVGGenerator:
     """Genera y modifica código SVG."""
 
     def __init__(
-        self, api_key: str, model: str = "claude-3-5-sonnet-20241022"
+        self,
+        api_key: str,
+        model: str = "claude-3-5-sonnet-20241022",
+        provider: str = "anthropic",
+        base_url: Optional[str] = None,
     ) -> None:
         """Inicializa el SVGGenerator.
 
         Args:
             api_key: API key para el servicio de IA.
             model: Modelo de IA a usar.
+            provider: Proveedor de API ("anthropic", "openai", "openrouter", "google").
+            base_url: URL base personalizada.
         """
         self.api_key = api_key
         self.model = model
+        self.provider = provider
+        self.base_url = base_url
 
-        # Inicializar clientes (usar Anthropic por defecto)
-        self.anthropic_client = anthropic.Anthropic(api_key=api_key)
-        self.openai_client = OpenAI(api_key=api_key)
+        # Inicializar clientes
+        if provider == "anthropic":
+            self.anthropic_client = anthropic.Anthropic(api_key=api_key)
+            self.openai_client = None
+        elif provider in ["openai", "openrouter"]:
+            self.openai_client = OpenAI(
+                api_key=api_key,
+                base_url=base_url or "https://openrouter.ai/api/v1",
+            )
+            self.anthropic_client = None
+        else:
+            self.anthropic_client = None
+            self.openai_client = None
 
     async def generate(
         self, analysis: ImageAnalysis, style: str = "flat"
@@ -151,15 +169,15 @@ class SVGGenerator:
         prompt = f"""Genera un código SVG que represente la siguiente imagen:
 
 Descripción: {analysis.description}
-Formas principales: {', '.join(analysis.shapes)}
-Colores principales: {', '.join(analysis.colors)}
+Formas principales: {', '.join(analysis.shapes) if analysis.shapes else 'No específicas'}
+Colores principales: {', '.join(analysis.colors) if analysis.colors else 'No específicos'}
 Composición: {analysis.composition}
 Complejidad: {analysis.complexity}
 Estilo: {style}
 
 Requisitos:
 1. El SVG debe ser válido y bien formado
-2. Usa solo los colores especificados
+2. Usa solo los colores especificados o colores similares
 3. Mantén la composición descrita
 4. El SVG debe ser responsive (viewBox)
 5. No incluyas texto o comentarios en el SVG
@@ -204,6 +222,23 @@ Requisitos:
         return prompt
 
     async def _call_api(self, prompt: str) -> str:
+        """Llama a la API según el proveedor configurado.
+
+        Args:
+            prompt: Prompt para la API.
+
+        Returns:
+            Respuesta de la API.
+        """
+        if self.provider == "anthropic":
+            return await self._call_anthropic(prompt)
+        elif self.provider in ["openai", "openrouter"]:
+            return await self._call_openai(prompt)
+        else:
+            # Default to anthropic
+            return await self._call_anthropic(prompt)
+
+    async def _call_anthropic(self, prompt: str) -> str:
         """Llama a la API de Anthropic.
 
         Args:
@@ -225,6 +260,28 @@ Requisitos:
 
         return message.content[0].text
 
+    async def _call_openai(self, prompt: str) -> str:
+        """Llama a la API de OpenAI o OpenRouter.
+
+        Args:
+            prompt: Prompt para la API.
+
+        Returns:
+            Respuesta de la API.
+        """
+        response = self.openai_client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            max_tokens=4096,
+        )
+
+        return response.choices[0].message.content
+
     def _extract_svg(self, response: str) -> str:
         """Extrae el código SVG de la respuesta.
 
@@ -235,7 +292,9 @@ Requisitos:
             Código SVG extraído.
         """
         # Buscar etiquetas SVG
-        svg_match = re.search(r"<svg[^>]*>.*?</svg>", response, re.DOTALL)
+        svg_match = re.search(
+            r"<svg[^>]*>.*?</svg>", response, re.DOTALL
+        )
 
         if svg_match:
             return svg_match.group(0)
@@ -285,8 +344,10 @@ Requisitos:
             Código SVG simple.
         """
         # Usar el primer color disponible o un color por defecto
-        color = analysis.colors[0] if analysis.colors else "#000000"
+        color = (
+            analysis.colors[0] if analysis.colors else "#000000"
+        )
 
-        return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <rect width="100" height="100" fill="{color}"/>
-</svg>"""
+</svg>'''

@@ -1,1 +1,328 @@
-[{"logger.info(f": "SIM: {ssim:.4f"}, {"image2_path}": "TODO: Implementar con CLIP\n        # Por ahora retornar un placeholder\n        logger.warning(", "placeholder": "return 0.4\n\n    def calculate_quality_score(\n        self", "comparison_result": "ComparisonResult\n    ) -> float:", "Calcula una puntuaci\u00f3n de calidad global.\n\n        Args:\n            comparison_result: Resultado de la comparaci\u00f3n.\n\n        Returns:\n            Puntuaci\u00f3n de calidad entre 0 y 1.\n        \"": "ssim = comparison_result.ssim\n        clip_similarity = comparison_result.clip_similarity\n\n        quality = self._calculate_quality_score(ssim", "logger.info(f": "uality score: {quality:.4f"}, ["np.ndarray, np.ndarray]:\n        \"", "Redimensiona dos im\u00e1genes para que tengan el mismo tama\u00f1o.\n\n        Args:\n            img1: Primera imagen.\n            img2: Segunda imagen.\n\n        Returns:\n            Tupla con las im\u00e1genes redimensionadas.\n        \"", "\n        h1, w1 = img1.shape[:2]\n        h2, w2 = img2.shape[:2]\n\n        # Usar el tama\u00f1o m\u00e1s peque\u00f1o\n        target_h = min(h1, h2)\n        target_w = min(w1, w2)\n\n        if h1 != target_h or w1 != target_w:\n            img1 = self._resize_image(img1, target_w, target_h)\n\n        if h2 != target_h or w2 != target_w:\n            img2 = self._resize_image(img2, target_w, target_h)\n\n        return img1, img2\n\n    def _resize_image(\n        self, img: np.ndarray, width: int, height: int\n    ) -> np.ndarray:\n        \"", "Redimensiona una imagen.\n\n        Args:\n            img: Imagen a redimensionar.\n            width: Ancho deseado.\n            height: Alto deseado.\n\n        Returns:\n            Imagen redimensionada.\n        \"", "\n        pil_img = Image.fromarray(img)\n        resized = pil_img.resize((width, height), Image.LANCZOS)\n        return np.array(resized)\n\n    def _calculate_ssim(self, img1: np.ndarray, img2: np.ndarray) -> float:\n        \"", "Calcula el \u00edndice de similitud estructural (SSIM).\n\n        Args:\n            img1: Primera imagen.\n            img2: Segunda imagen.\n\n        Returns:\n            Valor SSIM entre 0 y 1.\n        \"", "\n        from skimage.metrics import structural_similarity as ssim\n\n        # Convertir a escala de grises\n        gray1 = np.dot(img1[..., :3], [0.2989, 0.5870, 0.1140])\n        gray2 = np.dot(img2[..., :3], [0.2989, 0.5870, 0.1140])\n\n        # Calcular SSIM\n        score = ssim(gray1, gray2, data_range=gray2.max() - gray2.min())\n\n        return float(score)\n\n    def _calculate_quality_score(\n        self, ssim: float, clip_similarity: float\n    ) -> float:\n        \"", "Calcula una puntuaci\u00f3n de calidad global.\n\n        Args:\n            ssim: Valor SSIM.\n            clip_similarity: Valor de similitud CLIP.\n\n        Returns:\n            Puntuaci\u00f3n de calidad entre 0 y 1.\n        \"", "\n        # Ponderar SSIM y CLIP\n        # SSIM es m\u00e1s importante para similitud estructural\n        # CLIP es m\u00e1s importante para similitud sem\u00e1ntica\n        weight_ssim = 0.6\n        weight_clip = 0.4\n\n        quality = (ssim * weight_ssim) + (clip_similarity * weight_clip)\n\n        return min(max(quality, 0.0), 1.0)"]]
+"""Módulo de métricas de calidad para Vectorizer AI."""
+
+import logging
+from typing import Optional
+
+import numpy as np
+from PIL import Image
+
+from .models import ComparisonResult
+
+logger = logging.getLogger(__name__)
+
+
+class MetricsEngine:
+    """Calcula métricas de calidad entre imágenes."""
+
+    def __init__(
+        self,
+        enable_clip: bool = True,
+        enable_ssim: bool = True,
+        enable_lpips: bool = False,
+    ) -> None:
+        """Inicializa el MetricsEngine.
+
+        Args:
+            enable_clip: Habilitar métricas CLIP.
+            enable_ssim: Habilitar métricas SSIM.
+            enable_lpips: Habilitar métricas LPIPS.
+        """
+        self.enable_clip = enable_clip
+        self.enable_ssim = enable_ssim
+        self.enable_lpips = enable_lpips
+
+    def calculate_ssim(
+        self, image1_path: str, image2_path: str
+    ) -> float:
+        """Calcula el índice de similitud estructural (SSIM).
+
+        Args:
+            image1_path: Ruta a la primera imagen.
+            image2_path: Ruta a la segunda imagen.
+
+        Returns:
+            Valor SSIM entre 0 y 1.
+        """
+        logger.info(f"Calculando SSIM: {image1_path} vs {image2_path}")
+
+        # Cargar imágenes
+        img1 = self._load_image(image1_path)
+        img2 = self._load_image(image2_path)
+
+        # Redimensionar al mismo tamaño
+        img1, img2 = self._resize_to_match(img1, img2)
+
+        # Calcular SSIM
+        return self._calculate_ssim(img1, img2)
+
+    def calculate_clip_similarity(
+        self, image1_path: str, image2_path: str
+    ) -> float:
+        """Calcula la similitud usando CLIP embeddings.
+
+        Args:
+            image1_path: Ruta a la primera imagen.
+            image2_path: Ruta a la segunda imagen.
+
+        Returns:
+            Valor de similitud entre 0 y 1.
+        """
+        logger.info(
+            f"Calculando similitud CLIP: {image1_path} vs {image2_path}"
+        )
+
+        # TODO: Implementar con CLIP
+        # Por ahora retornar un valor basado en similitud de píxeles
+        logger.warning("CLIP similarity no implementado, usando pixel similarity")
+
+        # Cargar y procesar imágenes
+        img1 = self._load_image(image1_path)
+        img2 = self._load_image(image2_path)
+
+        img1, img2 = self._resize_to_match(img1, img2)
+
+        return self._calculate_pixel_similarity(img1, img2)
+
+    def calculate_lpips(
+        self, image1_path: str, image2_path: str
+    ) -> float:
+        """Calcula LPIPS (Learned Perceptual Image Patch Similarity).
+
+        Args:
+            image1_path: Ruta a la primera imagen.
+            image2_path: Ruta a la segunda imagen.
+
+        Returns:
+            Valor LPIPS entre 0 y 1 (invertido para mayor similitud).
+        """
+        logger.info(
+            f"Calculando LPIPS: {image1_path} vs {image2_path}"
+        )
+
+        try:
+            import torch
+            import torch.nn.functional as F
+            from torchvision import transforms
+
+            # Cargar imágenes
+            img1 = self._load_image(image1_path)
+            img2 = self._load_image(image2_path)
+
+            # Redimensionar a 256x256 para LPIPS
+            img1 = self._resize_image(img1, 256, 256)
+            img2 = self._resize_image(img2, 256, 256)
+
+            # Normalizar para torchvision
+            normalize = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            )
+
+            # Convertir a tensores
+            tensor1 = (
+                torch.from_numpy(img1).permute(2, 0, 1).float() / 255.0
+            )
+            tensor2 = (
+                torch.from_numpy(img2).permute(2, 0, 1).float() / 255.0
+            )
+
+            tensor1 = normalize(tensor1).unsqueeze(0)
+            tensor2 = normalize(tensor2).unsqueeze(0)
+
+            # Usar una red simple para calcular características
+            # (En producción usaríamos una red VGG pre-entrenada)
+            features1 = self._extract_features(tensor1)
+            features2 = self._extract_features(tensor2)
+
+            # Calcular distancia L2
+            lpips_distance = F.mse_loss(features1, features2).item()
+
+            # Invertir para obtener similitud (0-1)
+            similarity = 1.0 / (1.0 + lpips_distance * 100)
+
+            return similarity
+
+        except ImportError:
+            logger.warning("PyTorch no disponible, usando fallback")
+            img1 = self._load_image(image1_path)
+            img2 = self._load_image(image2_path)
+            img1, img2 = self._resize_to_match(img1, img2)
+            return self._calculate_pixel_similarity(img1, img2)
+
+    def calculate_quality_score(
+        self, comparison_result: ComparisonResult
+    ) -> float:
+        """Calcula una puntuación de calidad global.
+
+        Args:
+            comparison_result: Resultado de la comparación.
+
+        Returns:
+            Puntuación de calidad entre 0 y 1.
+        """
+        ssim = comparison_result.ssim
+        clip_similarity = comparison_result.clip_similarity
+
+        quality = self._calculate_quality_score(ssim, clip_similarity)
+
+        logger.info(f"Quality score: {quality:.4f}")
+
+        return quality
+
+    def _load_image(self, image_path: str) -> np.ndarray:
+        """Carga una imagen y la convierte a numpy array.
+
+        Args:
+            image_path: Ruta a la imagen.
+
+        Returns:
+            Array numpy con la imagen.
+        """
+        img = Image.open(image_path).convert("RGB")
+        return np.array(img)
+
+    def _resize_to_match(
+        self, img1: np.ndarray, img2: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Redimensiona dos imágenes al mismo tamaño.
+
+        Args:
+            img1: Primera imagen.
+            img2: Segunda imagen.
+
+        Returns:
+            Tupla con las imágenes redimensionadas.
+        """
+        h1, w1 = img1.shape[:2]
+        h2, w2 = img2.shape[:2]
+
+        # Usar el tamaño más pequeño
+        target_h = min(h1, h2)
+        target_w = min(w1, w2)
+
+        if h1 != target_h or w1 != target_w:
+            img1 = self._resize_image(img1, target_w, target_h)
+
+        if h2 != target_h or w2 != target_w:
+            img2 = self._resize_image(img2, target_w, target_h)
+
+        return img1, img2
+
+    def _resize_image(
+        self, img: np.ndarray, width: int, height: int
+    ) -> np.ndarray:
+        """Redimensiona una imagen.
+
+        Args:
+            img: Imagen a redimensionar.
+            width: Ancho deseado.
+            height: Alto deseado.
+
+        Returns:
+            Imagen redimensionada.
+        """
+        pil_img = Image.fromarray(img)
+        resized = pil_img.resize((width, height), Image.LANCZOS)
+        return np.array(resized)
+
+    def _calculate_ssim(
+        self, img1: np.ndarray, img2: np.ndarray
+    ) -> float:
+        """Calcula el índice de similitud estructural (SSIM).
+
+        Args:
+            img1: Primera imagen.
+            img2: Segunda imagen.
+
+        Returns:
+            Valor SSIM entre 0 y 1.
+        """
+        from skimage.metrics import (
+            structural_similarity as ssim_func,
+        )
+
+        # Convertir a escala de grises
+        gray1 = np.dot(img1[..., :3], [0.2989, 0.5870, 0.1140])
+        gray2 = np.dot(img2[..., :3], [0.2989, 0.5870, 0.1140])
+
+        # Calcular SSIM
+        score = ssim_func(
+            gray1, gray2, data_range=gray2.max() - gray2.min()
+        )
+
+        return float(score)
+
+    def _calculate_pixel_similarity(
+        self, img1: np.ndarray, img2: np.ndarray
+    ) -> float:
+        """Calcula la similitud de píxeles.
+
+        Args:
+            img1: Primera imagen.
+            img2: Segunda imagen.
+
+        Returns:
+            Valor de similitud entre 0 y 1.
+        """
+        # Convertir a float y normalizar
+        img1_float = img1.astype(np.float32) / 255.0
+        img2_float = img2.astype(np.float32) / 255.0
+
+        # Calcular diferencia absoluta
+        diff = np.abs(img1_float - img2_float)
+
+        # Calcular similitud (1 - media de diferencias)
+        similarity = 1.0 - np.mean(diff)
+
+        return float(similarity)
+
+    def _extract_features(self, x: torch.Tensor) -> torch.Tensor:
+        """Extrae características usando una red simple.
+
+        Args:
+            x: Tensor de imagen.
+
+        Returns:
+            Tensor de características.
+        """
+        import torch.nn as nn
+
+        # Red convolucional simple para extraer características
+        features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1)),
+        )
+
+        with torch.no_grad():
+            out = features(x)
+            out = out.view(out.size(0), -1)
+
+        return out
+
+    def _calculate_quality_score(
+        self, ssim: float, clip_similarity: float
+    ) -> float:
+        """Calcula una puntuación de calidad global.
+
+        Args:
+            ssim: Valor SSIM.
+            clip_similarity: Valor de similitud CLIP.
+
+        Returns:
+            Puntuación de calidad entre 0 y 1.
+        """
+        # Ponderar SSIM y CLIP
+        # SSIM es más importante para similitud estructural
+        # CLIP es más importante para similitud semántica
+        weight_ssim = 0.6
+        weight_clip = 0.4
+
+        quality = (ssim * weight_ssim) + (clip_similarity * weight_clip)
+
+        return min(max(quality, 0.0), 1.0)

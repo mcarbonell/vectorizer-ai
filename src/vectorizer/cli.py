@@ -1,1 +1,158 @@
-[{"click.option": "max_iterations", "help": "Nu00famero mu00e1ximo de iteraciones", "default": 10}, {"click.option": "quality_threshold", "help": "Umbral de calidad", "default": 0.85}, {"click.option": "verbose", "help": "Mostrar informaciu00f3n detallada", "is_flag": true}, {"click.option": "temp_dir", "help": "Directorio temporal", "default": "./temp"}, {"click.option": "model", "help": "Modelo de IA a usar", "default": "claude-3-5-sonnet-20241022"}, {"click.argument": "output", "type": "click.Path"}, {"click.argument": "input", "type": "click.Path(exists=True)"}, {"click.command": "main", "help": "Vectoriza una imagen a SVG"}, {"logger.info(f": "nicializando Vectorizer con modelo: {model}"}, {"logger.info(f": "ax_iteraciones: {max_iterations}"}, {"logger.info(f": "alidad_threshold: {quality_threshold}"}, {"logger.info(f": "nput: {input}"}, {"logger.info(f": "utput: {output}"}, {"logger.info(f": "emp_dir: {temp_dir}"}, {"logger.info(f": "erbose: {verbose}"}, {"logger.info(f": "API key no encontrada. Por favor, configura ANTHROPIC_API_KEY en .env"}, {"logger.info(f": "nicializando vectorizaciu00f3n..."}, {"logger.info(f": "teraciu00f3n {iteration}/{max_iterations} - Calidad: {quality:.4f}"}, {"logger.info(f": "ectorizaciu00f3n completada en {result.iterations} iteraciones"}, {"logger.info(f": "alidad final: {result.quality:.4f}"}, {"logger.info(f": "SIM: {result.metrics['ssim']:.4f}"}, {"logger.info(f": "LIP: {result.metrics['clip_similarity']:.4f}"}, {"logger.info(f": "VG guardado en: {output}"}, {"logger.error(f": "Error: {e}"}, {"logger.error(f": "Archivo no encontrado: {input}"}, {"logger.error(f": "Error al vectorizar: {e}"}, {"logger.error(f": "Error inesperado: {e}"}, {"logger.info(f": "Uso: vectorizer INPUT OUTPUT [OPTIONS]"}, {"logger.info(f": "Opciones:"}, {"logger.info(f": "  -m, --model TEXT              Modelo de IA a usar"}, {"logger.info(f": "  -i, --max-iterations INT    Nu00famero mu00e1ximo de iteraciones"}, {"logger.info(f": "  -q, --quality-threshold FLOAT  Umbral de calidad"}, {"logger.info(f": "  -v, --verbose                Mostrar informaciu00f3n detallada"}, {"logger.info(f": "  -t, --temp-dir TEXT          Directorio temporal"}, {"logger.info(f": "  --help                      Mostrar ayuda"}, {"logger.info(f": "Ejemplos:"}, {"logger.info(f": "  vectorizer input.png output.svg"}, {"logger.info(f": "  vectorizer input.png output.svg --max-iterations 15 --quality-threshold 0.9"}, {"logger.info(f": "  vectorizer input.png output.svg --verbose"}]
+"""Interfaz de línea de comandos para Vectorizer AI."""
+
+import logging
+import os
+from pathlib import Path
+
+import click
+
+from .core import Vectorizer
+
+logger = logging.getLogger(__name__)
+
+
+@click.command()
+@click.argument("input", type=click.Path(exists=True))
+@click.argument("output", type=click.Path)
+@click.option(
+    "--model",
+    "-m",
+    default="claude-3-5-sonnet-20241022",
+    help="Modelo de IA a usar",
+)
+@click.option(
+    "--max-iterations",
+    "-i",
+    default=10,
+    help="Numero maximo de iteraciones",
+)
+@click.option(
+    "--quality-threshold",
+    "-q",
+    default=0.85,
+    help="Umbral de calidad",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Mostrar informacion detallada",
+)
+@click.option(
+    "--temp-dir",
+    "-t",
+    default="./temp",
+    help="Directorio temporal",
+)
+@click.option(
+    "--provider",
+    "-p",
+    type=click.Choice(["anthropic", "openai", "openrouter", "google"]),
+    default="anthropic",
+    help="Proveedor de API",
+)
+@click.option(
+    "--api-key",
+    "-k",
+    default=None,
+    help="API key (o usar variable de entorno)",
+)
+@click.option(
+    "--base-url",
+    "-b",
+    default=None,
+    help="URL base personalizada (para OpenRouter, LM Studio, etc.)",
+)
+def main(
+    input: str,
+    output: str,
+    model: str,
+    max_iterations: int,
+    quality_threshold: float,
+    verbose: bool,
+    temp_dir: str,
+    provider: str,
+    api_key: str,
+    base_url: str,
+) -> None:
+    """Vectoriza una imagen a SVG usando IA."""
+    # Configure logging
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+
+    # Get API key from parameter or environment
+    if api_key:
+        pass  # Use provided key
+    elif provider == "anthropic":
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+    elif provider == "openai":
+        api_key = os.environ.get("OPENAI_API_KEY")
+    elif provider == "openrouter":
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+    elif provider == "google":
+        api_key = os.environ.get("GOOGLE_API_KEY")
+
+    if not api_key:
+        click.echo(
+            f"Error: API key no encontrada para {provider}. "
+            f"Usa --api-key o configura la variable de entorno соответствующую."
+        )
+        return
+
+    click.echo(f"Proveedor: {provider}")
+    click.echo(f"Modelo: {model}")
+    click.echo(f"Max iteraciones: {max_iterations}")
+    click.echo(f"Calidad threshold: {quality_threshold}")
+    click.echo(f"Input: {input}")
+    click.echo(f"Output: {output}")
+    click.echo(f"Temp dir: {temp_dir}")
+    click.echo(f"Verbose: {verbose}")
+
+    if base_url:
+        click.echo(f"Base URL: {base_url}")
+
+    try:
+        # Initialize vectorizer
+        vectorizer = Vectorizer(
+            api_key=api_key,
+            model=model,
+            max_iterations=max_iterations,
+            quality_threshold=quality_threshold,
+            temp_dir=temp_dir,
+            verbose=verbose,
+            provider=provider,
+            base_url=base_url if base_url else None,
+        )
+
+        # Progress callback
+        def progress_callback(iteration: int, quality: float) -> None:
+            click.echo(f"Iteracion {iteration}/{max_iterations} - Calidad: {quality:.4f}")
+
+        # Run vectorization
+        result = vectorizer.vectorize(input, output, callback=progress_callback)
+
+        # Show results
+        click.echo("")
+        click.echo("=" * 50)
+        click.echo("Vectorizacion completada!")
+        click.echo(f"Iteraciones: {result.iterations}")
+        click.echo(f"Calidad final: {result.quality:.4f}")
+        if "ssim" in result.metrics:
+            click.echo(f"SSIM: {result.metrics['ssim']:.4f}")
+        if "clip_similarity" in result.metrics:
+            click.echo(f"CLIP: {result.metrics['clip_similarity']:.4f}")
+        click.echo(f"SVG guardado en: {output}")
+        click.echo("=" * 50)
+
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}")
+    except ValueError as e:
+        click.echo(f"Error: {e}")
+    except Exception as e:
+        click.echo(f"Error inesperado: {e}")
+        if verbose:
+            raise
+
+
+if __name__ == "__main__":
+    main()
