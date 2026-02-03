@@ -199,6 +199,8 @@ OUTPUT_DIR=./output
 - [Guía de desarrollo](docs/development.md)
 - [API Reference](docs/api.md)
 - [Contribución](docs/CONTRIBUTING.md)
+- [Plan de Mejoras](docs/IMPROVEMENT_PLAN.md) 🆕
+- [Progreso del Desarrollo](docs/PROGRESS.md) 🆕
 
 ## 🔬 Arquitectura técnica
 
@@ -238,6 +240,7 @@ pytest tests/test_vision.py
 
 ## 📊 Roadmap
 
+### Completado (v0.1.0)
 | Estado | Fase |
 |--------|------|
 | [x] | Concepto y diseño |
@@ -247,10 +250,25 @@ pytest tests/test_vision.py
 | [x] | Interfaz de línea de comandos |
 | [x] | Renderizado SVG con Cairo |
 | [x] | Documentación completa |
-| [ ] | Tests automatizados |
-| [ ] | Integración con Claude/GPT-4V |
+| [x] | Integración con Claude/GPT-4V |
+
+### En Progreso (v0.2.0)
+| Estado | Fase | Prioridad |
+|--------|------|----------|
+| [ ] | FASE 1: Estabilización | 🔴 Alta |
+| [ ] | FASE 2: Testing (80% cobertura) | 🔴 Alta |
+| [ ] | FASE 3: Optimización (caché, deps) | 🟡 Media |
+| [ ] | FASE 4: Mejoras de calidad | 🟡 Media |
+
+### Futuro (v1.0.0+)
+| Estado | Fase |
+|--------|------|
+| [ ] | FASE 5: Funcionalidades adicionales |
+| [ ] | FASE 6: Documentación avanzada |
 | [ ] | API REST |
 | [ ] | Web UI |
+
+**Ver [Plan de Mejoras](docs/IMPROVEMENT_PLAN.md) para detalles completos**
 
 ---
 

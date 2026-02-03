@@ -44,7 +44,23 @@ class Vectorizer:
             verbose: Mostrar información detallada.
             provider: Proveedor de API ("anthropic", "openai", "openrouter", "google").
             base_url: URL base personalizada (para OpenRouter, etc.).
+
+        Raises:
+            ValueError: Si los parámetros son inválidos.
         """
+        # Validar parámetros
+        if not api_key or not api_key.strip():
+            raise ValueError("API key no puede estar vacía")
+        
+        if max_iterations < 1 or max_iterations > 100:
+            raise ValueError("max_iterations debe estar entre 1 y 100")
+        
+        if not 0.0 <= quality_threshold <= 1.0:
+            raise ValueError("quality_threshold debe estar entre 0.0 y 1.0")
+        
+        if provider not in ["anthropic", "openai", "openrouter", "google"]:
+            raise ValueError(f"Proveedor no soportado: {provider}")
+
         self.api_key = api_key
         self.model = model
         self.max_iterations = max_iterations
@@ -104,6 +120,31 @@ class Vectorizer:
         input_file = Path(input_path)
         if not input_file.exists():
             raise FileNotFoundError(f"Archivo no encontrado: {input_path}")
+        
+        if not input_file.is_file():
+            raise ValueError(f"La ruta no es un archivo: {input_path}")
+        
+        # Validar formato
+        supported_formats = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"]
+        if input_file.suffix.lower() not in supported_formats:
+            raise ValueError(
+                f"Formato no soportado: {input_file.suffix}. "
+                f"Formatos soportados: {', '.join(supported_formats)}"
+            )
+        
+        # Validar tamaño de archivo (máximo 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        file_size = input_file.stat().st_size
+        if file_size > max_size:
+            raise ValueError(
+                f"Archivo muy grande: {file_size / 1024 / 1024:.1f}MB. "
+                f"Máximo: {max_size / 1024 / 1024:.0f}MB"
+            )
+        
+        # Validar que output_path sea escribible
+        output_file = Path(output_path)
+        if output_file.exists() and not output_file.is_file():
+            raise ValueError(f"La ruta de salida no es un archivo: {output_path}")
 
         logger.info(f"Iniciando vectorizacion de {input_path}")
 
@@ -154,9 +195,12 @@ class Vectorizer:
                     logger.info(f"Umbral de calidad alcanzado: {quality:.4f}")
                     break
 
+            except RuntimeError as e:
+                logger.error(f"Error crítico de renderizado: {e}")
+                logger.error("No se puede continuar sin renderizado. Abortando.")
+                raise
             except Exception as e:
-                logger.warning(f"Error en renderizado: {e}")
-                # Continuamos sin renderizado
+                logger.warning(f"Error en iteración {iteration}: {e}")
                 quality = best_quality
 
             # Fase 4: Refinamiento

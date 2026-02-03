@@ -99,9 +99,19 @@ def main(
     if not api_key:
         click.echo(
             f"Error: API key no encontrada para {provider}. "
-            f"Usa --api-key o configura la variable de entorno correspondiente."
+            f"Usa --api-key o configura la variable de entorno correspondiente.",
+            err=True
         )
-        return
+        raise click.Abort()
+    
+    # Validar parámetros
+    if max_iterations < 1 or max_iterations > 100:
+        click.echo("Error: max-iterations debe estar entre 1 y 100", err=True)
+        raise click.Abort()
+    
+    if not 0.0 <= quality_threshold <= 1.0:
+        click.echo("Error: quality-threshold debe estar entre 0.0 y 1.0", err=True)
+        raise click.Abort()
 
     click.echo(f"Proveedor: {provider}")
     click.echo(f"Modelo: {model}")
@@ -149,13 +159,19 @@ def main(
         click.echo("=" * 50)
 
     except FileNotFoundError as e:
-        click.echo(f"Error: {e}")
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
     except ValueError as e:
-        click.echo(f"Error: {e}")
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
+    except RuntimeError as e:
+        click.echo(f"Error crítico: {e}", err=True)
+        raise click.Abort()
     except Exception as e:
-        click.echo(f"Error inesperado: {e}")
+        click.echo(f"Error inesperado: {e}", err=True)
         if verbose:
             raise
+        raise click.Abort()
 
 
 if __name__ == "__main__":

@@ -8,6 +8,12 @@ from typing import Optional
 import anthropic
 from openai import OpenAI
 from PIL import Image
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from .models import ImageAnalysis
 
@@ -187,10 +193,16 @@ Además, incluye:
 
         return base_prompt
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        reraise=True,
+    )
     async def _call_anthropic(
         self, image_data: tuple[str, str, Image.Image], prompt: str
     ) -> str:
-        """Llama a la API de Anthropic.
+        """Llama a la API de Anthropic con reintentos.
 
         Args:
             image_data: Tupla (media_type, base64_data, pil_image).
@@ -198,36 +210,48 @@ Además, incluye:
 
         Returns:
             Respuesta de la API.
+
+        Raises:
+            ConnectionError: Si falla la conexión después de reintentos.
         """
         media_type, base64_data, _ = image_data
 
-        message = self.client.messages.create(
-            model=self.model,
-            max_tokens=1024,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64_data,
+        try:
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": base64_data,
+                                },
                             },
-                        },
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ],
-        )
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+            )
+            return message.content[0].text
+        except Exception as e:
+            logger.error(f"Error llamando a Anthropic: {e}")
+            raise
 
-        return message.content[0].text
-
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        reraise=True,
+    )
     async def _call_openai(
         self, image_data: tuple[str, str, Image.Image], prompt: str
     ) -> str:
-        """Llama a la API de OpenAI o OpenRouter.
+        """Llama a la API de OpenAI o OpenRouter con reintentos.
 
         Args:
             image_data: Tupla (media_type, base64_data, pil_image).
@@ -235,34 +259,46 @@ Además, incluye:
 
         Returns:
             Respuesta de la API.
+
+        Raises:
+            ConnectionError: Si falla la conexión después de reintentos.
         """
         media_type, base64_data, _ = image_data
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{media_type};base64,{base64_data}"
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{media_type};base64,{base64_data}"
+                                },
                             },
-                        },
-                        {"type": "text", "text": prompt},
-                    ],
-                }
-            ],
-            max_tokens=1024,
-        )
+                            {"type": "text", "text": prompt},
+                        ],
+                    }
+                ],
+                max_tokens=1024,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error llamando a OpenAI: {e}")
+            raise
 
-        return response.choices[0].message.content
-
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        reraise=True,
+    )
     async def _call_google(
         self, image_path: Path, prompt: str
     ) -> ImageAnalysis:
-        """Llama a la API de Google Gemini.
+        """Llama a la API de Google Gemini con reintentos.
 
         Args:
             image_path: Ruta a la imagen.
@@ -270,34 +306,36 @@ Además, incluye:
 
         Returns:
             ImageAnalysis con los datos.
+
+        Raises:
+            ConnectionError: Si falla la conexión después de reintentos.
         """
-        if getattr(self, "_using_new_google_api", False):
-            # Usar la nueva API google.genai
-            from google import genai
+        pil_image = Image.open(image_path)
 
-            client: genai.Client = self.client
+        try:
+            if getattr(self, "_using_new_google_api", False):
+                from google import genai
+                from google.genai import types
 
-            # Cargar la imagen
-            img = Image.open(image_path)
+                client: genai.Client = self.client
 
-            response = client.models.generate_content(
-                model=self.model,
-                contents=[prompt, img],
-            )
+                response = client.models.generate_content(
+                    model=self.model,
+                    contents=[prompt, pil_image],
+                )
 
-            # Parsear la respuesta
-            return self._parse_analysis_response(response.text)
-        else:
-            # Usar la API anterior google.generativeai
-            import google.generativeai as genai
+                return self._parse_analysis_response(response.text)
+            else:
+                import google.generativeai as genai
 
-            model = genai.GenerativeModel(self.model)
+                model = genai.GenerativeModel(self.model)
 
-            # Gemini puede procesar la imagen directamente
-            response = model.generate_content([prompt, image_path])
+                response = model.generate_content([prompt, pil_image])
 
-            # Parsear la respuesta
-            return self._parse_analysis_response(response.text)
+                return self._parse_analysis_response(response.text)
+        except Exception as e:
+            logger.error(f"Error llamando a Google: {e}")
+            raise
 
     def _parse_analysis_response(self, response: str) -> ImageAnalysis:
         """Parsea la respuesta de la API.

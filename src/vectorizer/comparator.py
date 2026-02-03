@@ -77,71 +77,82 @@ class ImageComparator:
             output_path: Ruta donde guardar el PNG.
             width: Ancho de la imagen.
             height: Alto de la imagen.
+
+        Raises:
+            RuntimeError: Si no hay método de renderizado disponible.
         """
         logger.info(f"Renderizando SVG a: {output_path}")
 
-        # Crear directorio si no existe
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Método 1: Intentar con svglib + reportlab
-        try:
-            from svglib.svglib import svg2rlg
-            from reportlab.graphics import renderPM
+        errors = []
 
-            # Guardar SVG temporalmente
-            temp_svg = output_file.with_suffix(".svg")
-            temp_svg.write_text(svg_code)
-
-            # Convertir SVG a drawing
-            drawing = svg2rlg(str(temp_svg))
-
-            # Renderizar a PNG
-            renderPM.drawToFile(
-                drawing, output_path, fmt="PNG", width=width, height=height
-            )
-
-            # Limpiar archivo temporal
-            temp_svg.unlink()
-            logger.info(f"SVG renderizado con svglib: {output_path}")
-            return
-        except Exception as e:
-            logger.warning(f"svglib falló: {e}")
-
-        # Método 2: Intentar con cairosvg
+        # Método 1: cairosvg (más confiable)
         try:
             import cairosvg
-
             cairosvg.svg2png(
                 bytestring=svg_code.encode("utf-8"),
                 write_to=output_path,
                 output_width=width,
                 output_height=height,
             )
-            logger.info(f"SVG renderizado con cairosvg: {output_path}")
+            logger.info(f"SVG renderizado con cairosvg")
             return
+        except ImportError:
+            errors.append("cairosvg no instalado")
         except Exception as e:
-            logger.warning(f"cairosvg falló: {e}")
+            errors.append(f"cairosvg falló: {e}")
+            logger.debug(f"cairosvg error: {e}")
 
-        # Método 3: Renderizado básico con Pillow
-        logger.warning("Usando renderizado SVG básico (imagen blanca con metadata)")
-        self._render_basic_svg(svg_code, output_path, width, height)
+        # Método 2: svglib + reportlab
+        try:
+            from svglib.svglib import svg2rlg
+            from reportlab.graphics import renderPM
 
-    def _render_basic_svg(
-        self, svg_code: str, output_path: str, width: int, height: int
-    ) -> None:
-        """Renderiza un SVG básico cuando no hay bibliotecas disponibles.
+            temp_svg = output_file.with_suffix(".temp.svg")
+            temp_svg.write_text(svg_code, encoding="utf-8")
 
-        Args:
-            svg_code: Código SVG a renderizar.
-            output_path: Ruta donde guardar el PNG.
-            width: Ancho de la imagen.
-            height: Alto de la imagen.
-        """
-        # Crear imagen blanca
-        img = Image.new("RGB", (width, height), "white")
-        img.save(output_path)
-        logger.info(f"Imagen básica guardada en: {output_path}")
+            drawing = svg2rlg(str(temp_svg))
+            if drawing:
+                renderPM.drawToFile(
+                    drawing, output_path, fmt="PNG", dpi=72
+                )
+                temp_svg.unlink(missing_ok=True)
+                logger.info(f"SVG renderizado con svglib")
+                return
+        except ImportError:
+            errors.append("svglib/reportlab no instalado")
+        except Exception as e:
+            errors.append(f"svglib falló: {e}")
+            logger.debug(f"svglib error: {e}")
+
+        # Método 3: wand (ImageMagick)
+        try:
+            from wand.image import Image as WandImage
+            with WandImage(blob=svg_code.encode("utf-8"), format="svg") as img:
+                img.format = "png"
+                img.resize(width, height)
+                img.save(filename=output_path)
+            logger.info(f"SVG renderizado con wand")
+            return
+        except ImportError:
+            errors.append("wand no instalado")
+        except Exception as e:
+            errors.append(f"wand falló: {e}")
+            logger.debug(f"wand error: {e}")
+
+        # Sin métodos disponibles
+        error_msg = (
+            "No se pudo renderizar el SVG. Métodos intentados:\n" +
+            "\n".join(f"  - {err}" for err in errors) +
+            "\n\nInstala cairosvg: pip install cairosvg\n" +
+            "En Windows también necesitas GTK3: winget install tschoonj.GTKForWindows"
+        )
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
+
+
 
     def _load_image(self, image_path: str) -> np.ndarray:
         """Carga una imagen y la convierte a numpy array.
