@@ -31,6 +31,8 @@ class VisionAnalyzer:
         model: str = "claude-3-5-sonnet-20241022",
         provider: str = "anthropic",
         base_url: Optional[str] = None,
+        enable_cache: bool = True,
+        cache_ttl: int = 3600,
     ) -> None:
         """Inicializa el VisionAnalyzer.
 
@@ -39,11 +41,21 @@ class VisionAnalyzer:
             model: Modelo de IA a usar.
             provider: Proveedor de API ("anthropic", "openai", "openrouter", "google").
             base_url: URL base personalizada (útil para OpenRouter, LM Studio, etc.).
+            enable_cache: Habilitar caché de respuestas.
+            cache_ttl: Tiempo de vida del caché en segundos.
         """
         self.api_key = api_key
         self.model = model
         self.provider = provider
         self.base_url = base_url
+        self.enable_cache = enable_cache
+        
+        # Inicializar caché
+        if enable_cache:
+            from .cache import CacheManager
+            self.cache = CacheManager(cache_dir=".cache/vision", ttl=cache_ttl)
+        else:
+            self.cache = None
 
         if provider == "anthropic":
             self.client = anthropic.Anthropic(api_key=api_key)
@@ -90,6 +102,17 @@ class VisionAnalyzer:
         if not image_file.exists():
             raise FileNotFoundError(f"Archivo no encontrado: {image_path}")
 
+        # Verificar caché
+        if self.cache:
+            import hashlib
+            with open(image_file, "rb") as f:
+                image_hash = hashlib.md5(f.read()).hexdigest()
+            cache_key = self.cache.get_cache_key(image_hash, self.model, detail_level)
+            cached = self.cache.get(cache_key)
+            if cached:
+                logger.info(f"Usando análisis cacheado para {image_path}")
+                return ImageAnalysis(**cached)
+
         logger.info(f"Analizando imagen: {image_path}")
 
         # Leer imagen
@@ -105,11 +128,19 @@ class VisionAnalyzer:
             response = await self._call_openai(image_data, prompt)
         elif self.provider == "google":
             response = await self._call_google(image_file, prompt)
-            # El response de Google ya viene parseado
+            # Guardar en caché
+            if self.cache:
+                self.cache.set(cache_key, response.__dict__)
             return response
 
         # Parsear respuesta
-        return self._parse_analysis_response(response)
+        result = self._parse_analysis_response(response)
+        
+        # Guardar en caché
+        if self.cache:
+            self.cache.set(cache_key, result.__dict__)
+        
+        return result
 
     def _encode_image(self, image_path: Path) -> tuple[str, str, Image.Image]:
         """Codifica una imagen.

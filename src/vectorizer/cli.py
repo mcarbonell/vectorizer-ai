@@ -67,6 +67,11 @@ logger = logging.getLogger(__name__)
     default=None,
     help="URL base personalizada (para OpenRouter, LM Studio, etc.)",
 )
+@click.option(
+    "--estimate-cost",
+    is_flag=True,
+    help="Mostrar estimación de costo sin ejecutar",
+)
 def main(
     input: str,
     output: str,
@@ -78,6 +83,7 @@ def main(
     provider: str,
     api_key: str,
     base_url: str,
+    estimate_cost: bool,
 ) -> None:
     """Vectoriza una imagen a SVG usando IA."""
     # Configure logging
@@ -124,6 +130,26 @@ def main(
 
     if base_url:
         click.echo(f"Base URL: {base_url}")
+    
+    # Estimación de costo
+    if estimate_cost:
+        from pathlib import Path
+        from vectorizer.cost_estimator import CostEstimator
+        
+        input_file = Path(input)
+        if input_file.exists():
+            size_kb = input_file.stat().st_size / 1024
+        else:
+            size_kb = 100  # Default
+        
+        estimator = CostEstimator(provider=provider, model=model)
+        estimate_str = estimator.format_estimate(size_kb, max_iterations)
+        
+        click.echo("")
+        click.echo("=" * 50)
+        click.echo(estimate_str)
+        click.echo("=" * 50)
+        return
 
     try:
         # Initialize vectorizer

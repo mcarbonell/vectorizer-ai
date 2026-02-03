@@ -59,11 +59,11 @@ Este documento detalla el plan de mejoras para llevar Vectorizer AI de un protot
 
 | # | Tarea | Prioridad | Esfuerzo | Estado |
 |---|-------|-----------|----------|--------|
-| 3.1 | Implementar sistema de caché | 🟡 Media | 3h | ⏳ Pendiente |
-| 3.2 | Hacer PyTorch opcional | 🟡 Media | 1h | ⏳ Pendiente |
-| 3.3 | Optimizar dependencias | 🟡 Media | 2h | ⏳ Pendiente |
-| 3.4 | Implementar rate limiting | 🟡 Media | 2h | ⏳ Pendiente |
-| 3.5 | Estimador de costos | 🟡 Media | 2h | ⏳ Pendiente |
+| 3.1 | Implementar sistema de caché | 🟡 Media | 3h | ✅ Completado |
+| 3.2 | Hacer PyTorch opcional | 🟡 Media | 1h | ✅ Completado |
+| 3.3 | Optimizar dependencias | 🟡 Media | 2h | ✅ Completado |
+| 3.4 | Implementar rate limiting | 🟡 Media | 2h | ✅ Completado |
+| 3.5 | Estimador de costos | 🟡 Media | 2h | ✅ Completado |
 
 ---
 

@@ -142,7 +142,7 @@ class MetricsEngine:
             return similarity
 
         except ImportError:
-            logger.warning("PyTorch no disponible, usando fallback")
+            logger.warning("PyTorch no disponible. Instala con: pip install vectorizer-ai[ml]")
             img1 = self._load_image(image1_path)
             img2 = self._load_image(image2_path)
             img1, img2 = self._resize_to_match(img1, img2)

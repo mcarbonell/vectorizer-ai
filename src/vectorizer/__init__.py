@@ -5,6 +5,8 @@ from .vision import VisionAnalyzer
 from .svg_generator import SVGGenerator
 from .comparator import ImageComparator
 from .metrics import MetricsEngine
+from .cache import CacheManager
+from .cost_estimator import CostEstimator
 
 __all__ = [
     "Vectorizer",
@@ -12,6 +14,8 @@ __all__ = [
     "SVGGenerator",
     "ImageComparator",
     "MetricsEngine",
+    "CacheManager",
+    "CostEstimator",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

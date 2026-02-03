@@ -61,6 +61,11 @@ docs = [
 rendering = [
     "wand>=0.6.0",
 ]
+ml = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "transformers>=4.30.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/tu-usuario/vectorizer-ai"
