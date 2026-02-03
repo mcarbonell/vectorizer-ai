@@ -1,0 +1,1 @@
+[{"iteration}": "Calidad {quality:.4f"}, {"result.quality": 0.4, "print(f": "teraciones: {result.iterations"}, {"result.metrics['ssim']": 0.4, "print(f": "LIP Similarity: {result.metrics['clip_similarity']:.4f"}, {"result.metadata['output_path']}": ""}]
