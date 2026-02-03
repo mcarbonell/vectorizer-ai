@@ -11,6 +11,9 @@ Un vectorizador de imágenes impulsado por inteligencia artificial que utiliza v
 - **Múltiples formatos de entrada**: Soporta PNG, JPG, WEBP y más
 - **Salida SVG optimizada**: Genera SVGs limpios, editables y con fondo transparente
 - **Métricas automáticas**: SSIM y CLIP para evaluar la calidad del vectorizado
+- **Modo Batch**: Procesa múltiples imágenes con soporte paralelo 🆕
+- **Sistema de caché**: Reduce costos reutilizando análisis previos 🆕
+- **Estimador de costos**: Calcula costos antes de ejecutar 🆕
 
 ## 🚀 Cómo funciona
 
@@ -147,6 +150,8 @@ cp .env.example .env
 
 ## 🎯 Uso básico
 
+### Imagen individual
+
 ```bash
 # Vectorizar una imagen (usa Google Gemini por defecto)
 python -m vectorizer input.png output.svg
@@ -162,6 +167,26 @@ python -m vectorizer input.png output.svg --quality-threshold 0.9
 
 # Ver progreso detallado
 python -m vectorizer input.png output.svg --verbose
+```
+
+### Modo Batch (múltiples imágenes) 🆕
+
+```bash
+# Procesar múltiples imágenes con patrón glob
+python -m vectorizer "images/*.png" output/ --batch
+
+# Procesamiento paralelo (más rápido)
+python -m vectorizer "images/*.png" output/ --batch --parallel --max-workers 3
+
+# Recursivo (subdirectorios)
+python -m vectorizer "images/**/*.png" output/ --batch
+
+# Con opciones personalizadas
+python -m vectorizer "logos/*.png" output/ --batch \
+  --provider anthropic \
+  --max-iterations 5 \
+  --quality-threshold 0.80 \
+  --verbose
 ```
 
 ### Proveedores soportados:
@@ -252,19 +277,30 @@ pytest tests/test_vision.py
 | [x] | Documentación completa |
 | [x] | Integración con Claude/GPT-4V |
 
-### En Progreso (v0.2.0)
+### Completado (v0.2.0 - En progreso)
 | Estado | Fase | Prioridad |
 |--------|------|----------|
-| [ ] | FASE 1: Estabilización | 🔴 Alta |
-| [ ] | FASE 2: Testing (80% cobertura) | 🔴 Alta |
-| [ ] | FASE 3: Optimización (caché, deps) | 🟡 Media |
-| [ ] | FASE 4: Mejoras de calidad | 🟡 Media |
+| [x] | FASE 1: Estabilización | 🔴 Alta |
+| [x] | FASE 2: Testing (80% cobertura) | 🔴 Alta |
+| [x] | FASE 3: Optimización (caché, deps) | 🟡 Media |
+| [x] | FASE 4: Mejoras de calidad | 🟡 Media |
+| [x] | FASE 5: Modo Batch | 🟢 Baja |
+
+### Enfoque Actual: Calidad de Vectorización 🎯
+| Estado | Objetivo |
+|--------|----------|
+| 🔄 | Pruebas sistemáticas con diferentes imágenes |
+| 🔄 | Optimización de prompts basada en resultados |
+| 🔄 | Mejora del flujo de trabajo con IA |
+| 🔄 | Documentación de mejores prácticas |
+
+**Ver [CURRENT_FOCUS.md](docs/CURRENT_FOCUS.md) para detalles**
 
 ### Futuro (v1.0.0+)
 | Estado | Fase |
 |--------|------|
-| [ ] | FASE 5: Funcionalidades adicionales |
-| [ ] | FASE 6: Documentación avanzada |
+| [ ] | Funcionalidades adicionales (reportes, config) |
+| [ ] | Documentación avanzada |
 | [ ] | API REST |
 | [ ] | Web UI |
 

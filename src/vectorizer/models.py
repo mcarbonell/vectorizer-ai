@@ -46,3 +46,15 @@ class VectorizationResult:
     iterations: int
     metrics: Dict[str, float] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class BatchResult:
+    """Resultado del procesamiento batch de múltiples imágenes."""
+
+    total: int
+    successful: int
+    failed: int
+    results: List[Dict[str, Any]] = field(default_factory=list)
+    errors: List[Dict[str, str]] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)

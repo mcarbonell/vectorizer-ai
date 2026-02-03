@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.argument("input", type=click.Path(exists=True))
+@click.argument("input", type=click.Path())
 @click.argument("output")
 @click.option(
     "--model",
@@ -72,6 +72,27 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Mostrar estimación de costo sin ejecutar",
 )
+@click.option(
+    "--batch",
+    is_flag=True,
+    help="Modo batch: procesar múltiples imágenes (INPUT puede ser patrón glob)",
+)
+@click.option(
+    "--parallel",
+    is_flag=True,
+    help="Procesar imágenes en paralelo (solo con --batch)",
+)
+@click.option(
+    "--max-workers",
+    default=3,
+    help="Número máximo de workers paralelos (solo con --batch --parallel)",
+)
+@click.option(
+    "--continue-on-error",
+    is_flag=True,
+    default=True,
+    help="Continuar procesando si una imagen falla (solo con --batch)",
+)
 def main(
     input: str,
     output: str,
@@ -84,6 +105,10 @@ def main(
     api_key: str,
     base_url: str,
     estimate_cost: bool,
+    batch: bool,
+    parallel: bool,
+    max_workers: int,
+    continue_on_error: bool,
 ) -> None:
     """Vectoriza una imagen a SVG usando IA."""
     # Configure logging
@@ -119,12 +144,28 @@ def main(
         click.echo("Error: quality-threshold debe estar entre 0.0 y 1.0", err=True)
         raise click.Abort()
 
+    # Validar opciones de batch
+    if parallel and not batch:
+        click.echo("Error: --parallel solo puede usarse con --batch", err=True)
+        raise click.Abort()
+
     click.echo(f"Proveedor: {provider}")
     click.echo(f"Modelo: {model}")
     click.echo(f"Max iteraciones: {max_iterations}")
     click.echo(f"Calidad threshold: {quality_threshold}")
-    click.echo(f"Input: {input}")
-    click.echo(f"Output: {output}")
+    
+    if batch:
+        click.echo(f"Modo: Batch")
+        click.echo(f"Patrón/Lista: {input}")
+        click.echo(f"Output dir: {output}")
+        if parallel:
+            click.echo(f"Paralelo: Sí (max {max_workers} workers)")
+        else:
+            click.echo(f"Paralelo: No")
+    else:
+        click.echo(f"Input: {input}")
+        click.echo(f"Output: {output}")
+    
     click.echo(f"Temp dir: {temp_dir}")
     click.echo(f"Verbose: {verbose}")
 
@@ -136,8 +177,16 @@ def main(
         from pathlib import Path
         from vectorizer.cost_estimator import CostEstimator
         
-        input_file = Path(input)
-        if input_file.exists():
+        if batch:
+            from glob import glob
+            files = glob(input, recursive=True) if isinstance(input, str) else input
+            num_files = len(files)
+            click.echo(f"\nArchivos encontrados: {num_files}")
+        else:
+            num_files = 1
+        
+        input_file = Path(input) if not batch else None
+        if input_file and input_file.exists():
             size_kb = input_file.stat().st_size / 1024
         else:
             size_kb = 100  # Default
@@ -148,6 +197,8 @@ def main(
         click.echo("")
         click.echo("=" * 50)
         click.echo(estimate_str)
+        if batch and num_files > 1:
+            click.echo(f"\nCosto total estimado (x{num_files} imágenes): multiplicar por {num_files}")
         click.echo("=" * 50)
         return
 
@@ -164,25 +215,73 @@ def main(
             base_url=base_url if base_url else None,
         )
 
-        # Progress callback
-        def progress_callback(iteration: int, quality: float) -> None:
-            click.echo(f"Iteracion {iteration}/{max_iterations} - Calidad: {quality:.4f}")
+        if batch:
+            # Modo batch
+            click.echo("\n" + "=" * 50)
+            click.echo("Iniciando procesamiento batch...")
+            click.echo("=" * 50 + "\n")
+            
+            # Progress callback
+            def batch_callback(filename: str, current: int, total: int, quality: float) -> None:
+                click.echo(f"[{current}/{total}] {filename} - Calidad: {quality:.4f}")
+            
+            # Run batch vectorization
+            result = vectorizer.vectorize_batch(
+                input_paths=input,
+                output_dir=output,
+                callback=batch_callback,
+                continue_on_error=continue_on_error,
+                parallel=parallel,
+                max_workers=max_workers,
+            )
+            
+            # Show results
+            click.echo("")
+            click.echo("=" * 50)
+            click.echo("Procesamiento batch completado!")
+            click.echo("=" * 50)
+            click.echo(f"Total: {result.total}")
+            click.echo(f"Exitosos: {result.successful}")
+            click.echo(f"Fallidos: {result.failed}")
+            click.echo(f"Tiempo: {result.metadata.get('elapsed_time', 0):.2f}s")
+            
+            if result.successful > 0:
+                avg_quality = sum(r['quality'] for r in result.results) / len(result.results)
+                avg_iterations = sum(r['iterations'] for r in result.results) / len(result.results)
+                click.echo(f"Calidad promedio: {avg_quality:.4f}")
+                click.echo(f"Iteraciones promedio: {avg_iterations:.1f}")
+            
+            if result.errors:
+                click.echo(f"\nErrores ({len(result.errors)}):")
+                for error in result.errors[:5]:  # Mostrar primeros 5
+                    click.echo(f"  - {error.get('filename', 'unknown')}: {error.get('error', 'unknown')}")
+                if len(result.errors) > 5:
+                    click.echo(f"  ... y {len(result.errors) - 5} más")
+            
+            click.echo(f"\nSVGs guardados en: {output}")
+            click.echo("=" * 50)
+            
+        else:
+            # Modo single
+            # Progress callback
+            def progress_callback(iteration: int, quality: float) -> None:
+                click.echo(f"Iteracion {iteration}/{max_iterations} - Calidad: {quality:.4f}")
 
-        # Run vectorization
-        result = vectorizer.vectorize(input, output, callback=progress_callback)
+            # Run vectorization
+            result = vectorizer.vectorize(input, output, callback=progress_callback)
 
-        # Show results
-        click.echo("")
-        click.echo("=" * 50)
-        click.echo("Vectorizacion completada!")
-        click.echo(f"Iteraciones: {result.iterations}")
-        click.echo(f"Calidad final: {result.quality:.4f}")
-        if "ssim" in result.metrics:
-            click.echo(f"SSIM: {result.metrics['ssim']:.4f}")
-        if "clip_similarity" in result.metrics:
-            click.echo(f"CLIP: {result.metrics['clip_similarity']:.4f}")
-        click.echo(f"SVG guardado en: {output}")
-        click.echo("=" * 50)
+            # Show results
+            click.echo("")
+            click.echo("=" * 50)
+            click.echo("Vectorizacion completada!")
+            click.echo(f"Iteraciones: {result.iterations}")
+            click.echo(f"Calidad final: {result.quality:.4f}")
+            if "ssim" in result.metrics:
+                click.echo(f"SSIM: {result.metrics['ssim']:.4f}")
+            if "clip_similarity" in result.metrics:
+                click.echo(f"CLIP: {result.metrics['clip_similarity']:.4f}")
+            click.echo(f"SVG guardado en: {output}")
+            click.echo("=" * 50)
 
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)

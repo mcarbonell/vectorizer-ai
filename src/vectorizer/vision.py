@@ -194,35 +194,15 @@ class VisionAnalyzer:
         Returns:
             Prompt para la API.
         """
-        base_prompt = """Analiza esta imagen y proporciona la siguiente información:
-
-1. Formas principales presentes (círculos, rectángulos, rutas, etc.)
-2. Paleta de colores principales (en formato hexadecimal)
-3. Composición general (centrada, asimétrica, etc.)
-4. Nivel de complejidad (simple, media, compleja)
-5. Estilo visual (plano, detallado, minimalista, etc.)
-6. Descripción breve del contenido
-
-Responde en formato JSON con las siguientes claves:
-{
-    "shapes": ["forma1", "forma2", ...],
-    "colors": ["#RRGGBB", "#RRGGBB", ...],
-    "composition": "descripción",
-    "complexity": "simple|media|compleja",
-    "style": "estilo",
-    "description": "descripción breve"
-}
-"""
-
-        if detail_level == "high":
-            base_prompt += """
-Además, incluye:
-7. Elementos decorativos o detalles específicos
-8. Gradientes o efectos especiales
-9. Tipografía si está presente
-"""
-
-        return base_prompt
+        from .prompts import get_analysis_prompt
+        
+        # Usar prompt mejorado con few-shot
+        return get_analysis_prompt(
+            description="imagen a analizar",
+            colors=[],
+            shapes=[],
+            style=""
+        )
 
     @retry(
         stop=stop_after_attempt(3),

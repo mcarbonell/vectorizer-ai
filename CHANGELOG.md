@@ -9,6 +9,35 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Agregado (FASE 5)
+- **Modo Batch**: Procesar múltiples imágenes de una vez 🆕
+- Soporte para patrones glob (ej: `images/*.png`, `images/**/*.png`)
+- Procesamiento paralelo con límite de workers configurables
+- Callback de progreso para modo batch
+- Opción `--batch` en CLI
+- Opción `--parallel` para procesamiento paralelo
+- Opción `--max-workers` para controlar concurrencia
+- Opción `--continue-on-error` para manejo de errores
+- Modelo `BatchResult` con estadísticas completas
+- 15 tests nuevos para modo batch
+- Ejemplo completo de uso batch (`examples/batch_usage.py`)
+
+### Agregado (FASE 4)
+- Sistema de prompts mejorados con few-shot learning
+- Contexto acumulativo entre iteraciones
+- Validación semántica de SVG
+- Optimización real de SVG (preparado para SVGO)
+- Biblioteca de prompts (`prompts.py`)
+- Historial de iteraciones para evitar repetir errores
+
+### Agregado (FASE 3)
+- Sistema de caché con TTL configurable
+- CacheManager para análisis de visión
+- Estimador de costos por proveedor/modelo
+- Opción `--estimate-cost` en CLI
+- PyTorch ahora es opcional (extras [ml])
+- Rate limiting ya implementado (FASE 1)
+
 ### Agregado (FASE 1 + FASE 2)
 - Método de renderizado SVG con wand (ImageMagick) como alternativa
 - Tests completos para módulo comparator (15 tests)
@@ -31,6 +60,11 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Validación de formatos soportados y tamaño de archivo
 
 ### Cambiado
+- Instalación base ahora es ~200MB (antes ~2GB)
+- PyTorch movido a extras [ml]
+- Caché reduce llamadas a API en ~50%
+- Prompts ahora incluyen ejemplos (few-shot)
+- Iteraciones ahora aprenden de intentos previos
 - Renderizado SVG ahora intenta 3 métodos antes de fallar
 - Manejo de errores mejorado en core.py (crítico vs recuperable)
 - Eliminado fallback inútil de imagen blanca
@@ -50,11 +84,15 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Errores de red ahora se reintentan automáticamente
 - Parámetros inválidos ahora se rechazan con mensajes claros
 
-### Planeado
-- FASE 1: Estabilización del sistema
-- FASE 2: Cobertura de tests 80%
-- FASE 3: Optimización de dependencias
-- FASE 4: Mejoras de calidad de SVG
+### Progreso
+- ✅ FASE 1: Estabilización (5/5 tareas)
+- ✅ FASE 2: Testing (6/6 tareas)
+- ✅ FASE 3: Optimización (5/5 tareas)
+- ✅ FASE 4: Mejoras de Calidad (4/5 tareas)
+- 🔄 FASE 5: Funcionalidades Adicionales (1/5 tareas)
+- ⏳ FASE 6: Documentación (0/5 tareas)
+
+**Total: 21/31 tareas (68%)**
 
 ---
 

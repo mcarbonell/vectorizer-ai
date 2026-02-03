@@ -7,6 +7,7 @@ from .comparator import ImageComparator
 from .metrics import MetricsEngine
 from .cache import CacheManager
 from .cost_estimator import CostEstimator
+from .models import BatchResult, VectorizationResult
 
 __all__ = [
     "Vectorizer",
@@ -16,6 +17,8 @@ __all__ = [
     "MetricsEngine",
     "CacheManager",
     "CostEstimator",
+    "BatchResult",
+    "VectorizationResult",
 ]
 
 __version__ = "0.2.0"

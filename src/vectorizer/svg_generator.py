@@ -113,21 +113,22 @@ class SVGGenerator:
         )
 
     async def modify(
-        self, svg_code: str, modifications: List[str]
+        self, svg_code: str, modifications: List[str], context: dict = None
     ) -> SVGGeneration:
         """Modifica un SVG existente según las instrucciones.
 
         Args:
             svg_code: Código SVG a modificar.
             modifications: Lista de modificaciones a aplicar.
+            context: Contexto de iteraciones anteriores.
 
         Returns:
             SVGGeneration con el SVG modificado.
         """
         logger.info(f"Modificando SVG con {len(modifications)} cambios...")
 
-        # Crear prompt para modificación
-        prompt = self._create_modification_prompt(svg_code, modifications)
+        # Crear prompt para modificación con contexto
+        prompt = self._create_modification_prompt(svg_code, modifications, context)
 
         # Llamar a la API
         response = await self._call_api(prompt)
@@ -199,60 +200,36 @@ class SVGGenerator:
         Returns:
             Prompt para la API.
         """
-        prompt = f"""Genera un código SVG que represente la siguiente imagen:
-
-Descripción: {analysis.description}
-Formas principales: {', '.join(analysis.shapes) if analysis.shapes else 'No específicas'}
-Colores principales: {', '.join(analysis.colors) if analysis.colors else 'No específicos'}
-Composición: {analysis.composition}
-Complejidad: {analysis.complexity}
-Estilo: {style}
-
-Requisitos:
-1. El SVG debe ser válido y bien formado
-2. Usa solo los colores especificados o colores similares
-3. Mantén la composición descrita
-4. El SVG debe ser responsive (viewBox)
-5. No incluyas texto o comentarios en el SVG
-6. Devuelve SOLO el código SVG, sin explicaciones adicionales
-
-Ejemplo de formato:
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- contenido del SVG -->
-</svg>
-"""
-        return prompt
+        from .prompts import get_generation_prompt
+        
+        # Usar prompt mejorado con few-shot
+        return get_generation_prompt(
+            analysis={
+                'description': analysis.description,
+                'shapes': analysis.shapes,
+                'colors': analysis.colors,
+                'composition': analysis.composition,
+            },
+            style=style
+        )
 
     def _create_modification_prompt(
-        self, svg_code: str, modifications: List[str]
+        self, svg_code: str, modifications: List[str], context: dict = None
     ) -> str:
         """Crea el prompt para modificación de SVG.
 
         Args:
             svg_code: Código SVG actual.
             modifications: Lista de modificaciones.
+            context: Contexto de iteraciones anteriores.
 
         Returns:
             Prompt para la API.
         """
-        modifications_text = "\n".join(
-            f"- {mod}" for mod in modifications
-        )
-
-        prompt = f"""Modifica el siguiente código SVG aplicando estos cambios:
-
-{modifications_text}
-
-SVG actual:
-{svg_code}
-
-Requisitos:
-1. Aplica solo las modificaciones solicitadas
-2. Mantén el resto del SVG sin cambios
-3. El SVG resultante debe ser válido
-4. Devuelve SOLO el código SVG modificado, sin explicaciones
-"""
-        return prompt
+        from .prompts import get_modification_prompt
+        
+        # Usar prompt mejorado con contexto
+        return get_modification_prompt(svg_code, modifications, context)
 
     async def _call_api(self, prompt: str) -> str:
         """Llama a la API según el proveedor configurado.

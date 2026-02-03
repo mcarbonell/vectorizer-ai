@@ -74,11 +74,11 @@ Este documento detalla el plan de mejoras para llevar Vectorizer AI de un protot
 
 | # | Tarea | Prioridad | Esfuerzo | Estado |
 |---|-------|-----------|----------|--------|
-| 4.1 | Mejorar prompts con few-shot | 🟡 Media | 3h | ⏳ Pendiente |
-| 4.2 | Contexto acumulativo | 🟡 Media | 2h | ⏳ Pendiente |
-| 4.3 | Validación semántica de SVG | 🟡 Media | 2h | ⏳ Pendiente |
-| 4.4 | Optimización real de SVG (SVGO) | 🟡 Media | 2h | ⏳ Pendiente |
-| 4.5 | Implementar CLIP real | 🟢 Baja | 3h | ⏳ Pendiente |
+| 4.1 | Mejorar prompts con few-shot | 🟡 Media | 3h | ✅ Completado |
+| 4.2 | Contexto acumulativo | 🟡 Media | 2h | ✅ Completado |
+| 4.3 | Validación semántica de SVG | 🟡 Media | 2h | ✅ Completado |
+| 4.4 | Optimización real de SVG (SVGO) | 🟡 Media | 2h | ✅ Completado |
+| 4.5 | Implementar CLIP real | 🟢 Baja | 3h | ⏳ Opcional |
 
 ---
 
