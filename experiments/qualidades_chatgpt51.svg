@@ -1,0 +1,38 @@
+<svg width="500" height="160" viewBox="0 0 500 160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo transparente -->
+  <rect width="100%" height="100%" fill="none"/>
+
+  <!-- Definición de colores -->
+  <!-- Ajusta estos valores si quieres afinar el tono -->
+  <defs>
+    <style type="text/css"><![CDATA[
+      .text-gray { fill: #444444; }
+      .text-green { fill: #4CAF50; }
+      .subtitle { fill: #444444; font-size: 22px; }
+      .main-text { font-size: 48px; }
+      .font-main { font-family: "Segoe UI", Arial, sans-serif; }
+    ]]></style>
+  </defs>
+
+  <!-- Texto principal: "Qualidades" -->
+  <g class="font-main main-text" transform="translate(20,70)">
+    <!-- "Quali" en gris -->
+    <text class="text-gray" x="0" y="0">Quali</text>
+    <!-- "dades" en verde, desplazado a la derecha -->
+    <text class="text-green" x="145" y="0">dades</text>
+  </g>
+
+  <!-- Texto secundario: "consultoria" debajo de "dades" -->
+  <g class="font-main" transform="translate(165,105)">
+    <text class="subtitle">consultoria</text>
+  </g>
+
+  <!-- Flecha a la derecha -->
+  <!-- Un simple triángulo + rectángulo para simular una flecha sólida -->
+  <g transform="translate(380,40)" fill="#444444">
+    <!-- Cuerpo de la flecha -->
+    <rect x="0" y="18" width="70" height="10" rx="2" ry="2"/>
+    <!-- Punta de la flecha -->
+    <polygon points="70,10 95,23 70,36"/>
+  </g>
+</svg>

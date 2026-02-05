@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 100">
+  <!-- Fondo blanco -->
+  <rect x="0" y="0" width="250" height="100" fill="#FFFFFF"/>
+  
+  <!-- Barra de progreso fondo -->
+  <rect x="25" y="40" width="200" height="20" rx="10" fill="#E0E0E0"/>
+  
+  <!-- Barra de progreso relleno (75%) -->
+  <rect x="25" y="40" width="150" height="20" rx="10" fill="#4CAF50"/>
+  
+  <!-- Porcentaje -->
+  <text x="125" y="85" text-anchor="middle" font-family="Arial" font-size="16" fill="#333333">75%</text>
+</svg>

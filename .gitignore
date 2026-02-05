@@ -159,13 +159,13 @@ $RECYCLE.BIN/
 # Project specific
 temp/
 output/
-*.svg
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.gif
-*.bmp
+# *.svg
+# *.png
+# *.jpg
+# *.jpeg
+# *.webp
+# *.gif
+# *.bmp
 
 # API Keys (never commit these!)
 *.key

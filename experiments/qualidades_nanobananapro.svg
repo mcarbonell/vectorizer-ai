@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100">
+  <!-- Definición de fuentes y estilos -->
+  <style>
+    .text-quali { font-family: Arial, sans-serif; font-weight: bold; font-size: 48px; fill: #5C5C5C; }
+    .text-dades { font-family: Arial, sans-serif; font-weight: bold; font-size: 48px; fill: #9CC733; }
+    .text-consultoria { font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; fill: #5C5C5C; }
+    .arrow { fill: #5C5C5C; }
+  </style>
+
+  <!-- Texto principal 'Qualidades' -->
+  <text x="10" y="55">
+    <tspan class="text-quali">Quali</tspan>
+    <tspan class="text-dades">dades</tspan>
+  </text>
+
+  <!-- Texto secundario 'consultoria' -->
+  <text x="170" y="75" class="text-consultoria">consultoria</text>
+
+  <!-- Flecha -->
+  <path class="arrow" d="M350 20 L380 50 L350 80 L340 70 L360 50 L340 30 Z" />
+</svg>

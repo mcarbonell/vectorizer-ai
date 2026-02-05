@@ -1,0 +1,15 @@
+<svg width="400" height="100" viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .qualidades-gray { fill: #5C5C5C; font-family: Arial, sans-serif; font-weight: bold; font-size: 50px; }
+    .qualidades-green { fill: #7EC300; font-family: Arial, sans-serif; font-weight: bold; font-size: 50px; }
+    .consultoria { fill: #5C5C5C; font-family: Arial, sans-serif; font-weight: normal; font-size: 25px; }
+    .arrow { fill: #5C5C5C; }
+  </style>
+
+  <text x="0" y="50" class="qualidades-gray">Quali</text>
+  <text x="115" y="50" class="qualidades-green">dades</text>
+  <text x="115" y="80" class="consultoria">consultoria</text>
+
+  <!-- Arrow -->
+  <polygon points="260,35 280,50 260,65 260,57 240,57 240,43 260,43" class="arrow" transform="translate(10,0)"/>
+</svg>

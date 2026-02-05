@@ -1,0 +1,19 @@
+<svg width="300" height="100" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definición de Estilos -->
+  <style>
+    .font-main { font: bold 42px Arial, Helvetica, sans-serif; letter-spacing: -1px; }
+    .font-sub { font: normal 18px Arial, Helvetica, sans-serif; letter-spacing: 1px; }
+    .gray { fill: #5B5B5B; }
+    .green { fill: #89BF1B; }
+  </style>
+
+  <!-- Texto Principal: Qualidades -->
+  <text x="5" y="55" class="font-main gray">Quali</text>
+  <text x="110" y="55" class="font-main green">dades</text>
+
+  <!-- Texto Secundario: consultoria -->
+  <text x="115" y="75" class="font-sub gray">consultoria</text>
+
+  <!-- Símbolo > (Chevron) -->
+  <path d="M260,25 L280,42 L260,59" fill="none" stroke="#5B5B5B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

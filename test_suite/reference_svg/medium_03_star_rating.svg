@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <!-- Fondo blanco -->
+  <rect x="0" y="0" width="300" height="100" fill="#FFFFFF"/>
+  
+  <!-- Estrella 1 -->
+  <polygon points="30,50 35,65 50,65 38,75 43,90 30,80 17,90 22,75 10,65 25,65" fill="#FFD700"/>
+  
+  <!-- Estrella 2 -->
+  <polygon points="80,50 85,65 100,65 88,75 93,90 80,80 67,90 72,75 60,65 75,65" fill="#FFD700"/>
+  
+  <!-- Estrella 3 -->
+  <polygon points="130,50 135,65 150,65 138,75 143,90 130,80 117,90 122,75 110,65 125,65" fill="#FFD700"/>
+  
+  <!-- Estrella 4 -->
+  <polygon points="180,50 185,65 200,65 188,75 193,90 180,80 167,90 172,75 160,65 175,65" fill="#FFD700"/>
+  
+  <!-- Estrella 5 -->
+  <polygon points="230,50 235,65 250,65 238,75 243,90 230,80 217,90 222,75 210,65 225,65" fill="#FFD700"/>
+</svg>

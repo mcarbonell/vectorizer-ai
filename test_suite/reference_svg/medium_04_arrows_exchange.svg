@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Fondo blanco -->
+  <rect x="0" y="0" width="200" height="200" fill="#FFFFFF"/>
+  
+  <!-- Flecha izquierda -->
+  <polygon points="60,90 90,60 90,75 130,75 130,105 90,105 90,120" fill="#34C759"/>
+  
+  <!-- Flecha derecha -->
+  <polygon points="140,110 110,140 110,125 70,125 70,95 110,95 110,80" fill="#FF9500"/>
+  
+  <!-- Círculo central -->
+  <circle cx="100" cy="100" r="20" fill="#007AFF"/>
+</svg>
