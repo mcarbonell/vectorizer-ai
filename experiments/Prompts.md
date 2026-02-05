@@ -182,3 +182,32 @@ Claro, aquí tienes el código SVG para generar esa imagen:
     *   `"dades"` está en color verde (`#4CAF50`).
     *   `"consultoria"` está en un color más claro, como el gris medio (`#888`).
 *   **`<path>`**: Crea la flecha derecha. La ruta `M 190 25 L 230 25 L 220 15 Z` dibuja una línea desde `(190, 25)` hasta `(230, 25)`, luego un triángulo para el cabezal de la flecha y cierra el camino (`Z`).
+
+
+
+
+---
+LOCAL - LM Studio - mistralai/devstral-small-2-2512
+
+---
+Podrías darme el código de un svg que genere la misma imagen, pero en formato vectorial?
+
+---
+Aquí tienes el código SVG que genera una imagen similar a la que proporcionaste (con el texto "Qualidades" y "consultoria" junto con una flecha). Puedes ajustar los colores, fuentes y posiciones según sea necesario:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100">
+  <!-- Texto "Qualidades" -->
+  <text x="20" y="50" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#333">Qualidades</text>
+
+  <!-- Flecha -->
+  <path d="M180 40 L220 40 L220 60 L250 50 Z" fill="#FFD700"/>
+
+  <!-- Texto "consultoria" -->
+  <text x="260" y="50" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#333">consultoria</text>
+</svg>
+```
+
+Puedes copiar este código en un archivo con extensión `.svg` o incrustarlo directamente en una página web. Si necesitas ajustar algún elemento (como el color de la flecha, el tamaño del texto, etc.), dime qué cambios deseas y puedo modificarlo por ti.
+
+Nota: El SVG generado es una aproximación basada en la imagen proporcionada. Si necesitas una reproducción exacta, sería necesario tener más detalles sobre los colores, fuentes y posiciones específicas.
