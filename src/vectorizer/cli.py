@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--provider",
     "-p",
-    type=click.Choice(["anthropic", "openai", "openrouter", "google"]),
+    type=click.Choice(["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]),
     default="anthropic",
     help="Proveedor de API",
 )
@@ -126,8 +126,11 @@ def main(
         api_key = os.environ.get("OPENROUTER_API_KEY")
     elif provider == "google":
         api_key = os.environ.get("GOOGLE_API_KEY")
+    elif provider in ["ollama", "lmstudio"]:
+        # LLMs locales no requieren API key
+        api_key = "not-needed"
 
-    if not api_key:
+    if not api_key and provider not in ["ollama", "lmstudio"]:
         click.echo(
             f"Error: API key no encontrada para {provider}. "
             f"Usa --api-key o configura la variable de entorno correspondiente.",

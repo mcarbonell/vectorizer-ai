@@ -78,17 +78,17 @@ Sé preciso con los colores (formato hexadecimal) y las formas.
 
 def get_generation_prompt(analysis: dict, style: str = "flat") -> str:
     """Genera prompt mejorado para generación de SVG con few-shot.
-    
+
     Args:
         analysis: Análisis de la imagen.
         style: Estilo deseado.
-    
+
     Returns:
         Prompt optimizado con ejemplos.
     """
     shapes_str = ', '.join(analysis.get('shapes', [])) if analysis.get('shapes') else 'formas básicas'
     colors_str = ', '.join(analysis.get('colors', [])) if analysis.get('colors') else 'colores apropiados'
-    
+
     return f"""Genera un código SVG basado en el siguiente análisis:
 
 Descripción: {analysis.get('description', 'imagen')}
@@ -108,29 +108,33 @@ REQUISITOS IMPORTANTES:
 6. Mantén el código limpio y legible
 7. NO incluyas comentarios en el SVG
 8. Devuelve SOLO el código SVG, sin explicaciones
+9. NO agregues elementos decorativos que no estén en la imagen original (rectángulos de borde, círculos decorativos, etc.)
+10. Representa EXACTAMENTE lo que ves en la imagen, sin añadir nada extra
+11. Usa posicionamiento preciso basado en las proporciones de la imagen
+12. El viewBox debe coincidir con las dimensiones relativas de los elementos
 
 Genera el SVG ahora:"""
 
 
 def get_modification_prompt(svg_code: str, modifications: list, context: dict = None) -> str:
     """Genera prompt mejorado para modificación de SVG.
-    
+
     Args:
         svg_code: Código SVG actual.
         modifications: Lista de modificaciones a aplicar.
         context: Contexto de iteraciones anteriores.
-    
+
     Returns:
         Prompt optimizado.
     """
     mods_text = '\n'.join(f"- {mod}" for mod in modifications)
-    
+
     context_text = ""
     if context and context.get('previous_attempts'):
         context_text = f"\n\nINTENTOS PREVIOS (evita repetir estos errores):\n"
         for attempt in context['previous_attempts'][-2:]:  # Últimos 2 intentos
             context_text += f"- {attempt}\n"
-    
+
     return f"""Modifica el siguiente código SVG aplicando estos cambios específicos:
 
 {mods_text}
@@ -145,6 +149,8 @@ INSTRUCCIONES:
 3. El SVG resultante debe ser válido
 4. Preserva la estructura y estilo existente
 5. Si hay texto, manténlo como <text>, no lo conviertas a paths
-6. Devuelve SOLO el código SVG modificado, sin explicaciones
+6. NO agregues elementos decorativos nuevos que no estén en la imagen original
+7. NO añadas rectángulos de borde, círculos decorativos ni otros elementos extras
+8. Devuelve SOLO el código SVG modificado, sin explicaciones
 
 SVG modificado:"""

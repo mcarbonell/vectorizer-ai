@@ -69,6 +69,7 @@ class ImageComparator:
         output_path: str,
         width: int = 1024,
         height: int = 1024,
+        source_image_path: str = None,
     ) -> None:
         """Renderiza un SVG a PNG.
 
@@ -77,10 +78,19 @@ class ImageComparator:
             output_path: Ruta donde guardar el PNG.
             width: Ancho de la imagen.
             height: Alto de la imagen.
+            source_image_path: Ruta de la imagen original para usar sus dimensiones.
 
         Raises:
             RuntimeError: Si no hay método de renderizado disponible.
         """
+        # Si se proporciona la imagen fuente, usar sus dimensiones
+        if source_image_path and Path(source_image_path).exists():
+            try:
+                with Image.open(source_image_path) as img:
+                    width, height = img.size
+                    logger.info(f"Usando dimensiones de imagen original: {width}x{height}")
+            except Exception as e:
+                logger.warning(f"No se pudieron obtener dimensiones de la imagen fuente: {e}")
         logger.info(f"Renderizando SVG a: {output_path}")
 
         output_file = Path(output_path)
@@ -142,6 +152,15 @@ class ImageComparator:
             errors.append(f"wand falló: {e}")
             logger.debug(f"wand error: {e}")
 
+        # Método 4: Renderizado simple con Pillow (fallback para formas básicas)
+        try:
+            self._render_svg_with_pillow(svg_code, output_path, width, height)
+            logger.info(f"SVG renderizado con Pillow (fallback)")
+            return
+        except Exception as e:
+            errors.append(f"Pillow fallback falló: {e}")
+            logger.debug(f"Pillow error: {e}")
+
         # Sin métodos disponibles
         error_msg = (
             "No se pudo renderizar el SVG. Métodos intentados:\n" +
@@ -151,6 +170,131 @@ class ImageComparator:
         )
         logger.error(error_msg)
         raise RuntimeError(error_msg)
+
+    def _render_svg_with_pillow(
+        self,
+        svg_code: str,
+        output_path: str,
+        width: int,
+        height: int,
+    ) -> None:
+        """Renderiza SVG básico usando Pillow (fallback).
+        
+        Soporta: rect, circle, ellipse, polygon, text básico.
+        
+        Args:
+            svg_code: Código SVG a renderizar.
+            output_path: Ruta donde guardar el PNG.
+            width: Ancho de la imagen.
+            height: Alto de la imagen.
+        """
+        import re
+        from PIL import ImageDraw
+        
+        # Crear imagen con fondo blanco
+        img = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(img)
+        
+        # Extraer elementos del SVG con regex simple
+        
+        # Rectángulos: <rect x="10" y="10" width="100" height="100" fill="red"/>
+        rects = re.findall(r'<rect[^>]*>', svg_code, re.IGNORECASE)
+        for rect in rects:
+            x = float(re.search(r'x=["\']([^"\']+)["\']', rect).group(1)) if re.search(r'x=["\']([^"\']+)["\']', rect) else 0
+            y = float(re.search(r'y=["\']([^"\']+)["\']', rect).group(1)) if re.search(r'y=["\']([^"\']+)["\']', rect) else 0
+            w = float(re.search(r'width=["\']([^"\']+)["\']', rect).group(1)) if re.search(r'width=["\']([^"\']+)["\']', rect) else 100
+            h = float(re.search(r'height=["\']([^"\']+)["\']', rect).group(1)) if re.search(r'height=["\']([^"\']+)["\']', rect) else 100
+            fill_match = re.search(r'fill=["\']([^"\']+)["\']', rect)
+            fill = fill_match.group(1) if fill_match else 'black'
+            
+            # Escalar coordenadas al tamaño de salida
+            # Asumimos viewBox de 100x100 si no se especifica
+            vb_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_code)
+            if vb_match:
+                vb = vb_match.group(1).split()
+                if len(vb) == 4:
+                    vb_w, vb_h = float(vb[2]), float(vb[3])
+                    scale_x = width / vb_w
+                    scale_y = height / vb_h
+                    x, y = x * scale_x, y * scale_y
+                    w, h = w * scale_x, h * scale_y
+            
+            draw.rectangle([x, y, x+w, y+h], fill=fill)
+        
+        # Círculos: <circle cx="50" cy="50" r="40" fill="red"/>
+        circles = re.findall(r'<circle[^>]*>', svg_code, re.IGNORECASE)
+        for circle in circles:
+            cx = float(re.search(r'cx=["\']([^"\']+)["\']', circle).group(1)) if re.search(r'cx=["\']([^"\']+)["\']', circle) else 50
+            cy = float(re.search(r'cy=["\']([^"\']+)["\']', circle).group(1)) if re.search(r'cy=["\']([^"\']+)["\']', circle) else 50
+            r = float(re.search(r'r=["\']([^"\']+)["\']', circle).group(1)) if re.search(r'r=["\']([^"\']+)["\']', circle) else 40
+            fill_match = re.search(r'fill=["\']([^"\']+)["\']', circle)
+            fill = fill_match.group(1) if fill_match else 'black'
+            
+            # Escalar
+            vb_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_code)
+            if vb_match:
+                vb = vb_match.group(1).split()
+                if len(vb) == 4:
+                    vb_w, vb_h = float(vb[2]), float(vb[3])
+                    scale_x = width / vb_w
+                    scale_y = height / vb_h
+                    cx, cy = cx * scale_x, cy * scale_y
+                    r = r * min(scale_x, scale_y)
+            
+            draw.ellipse([cx-r, cy-r, cx+r, cy+r], fill=fill)
+        
+        # Polígonos: <polygon points="x1,y1 x2,y2 x3,y3" fill="red"/>
+        polygons = re.findall(r'<polygon[^>]*>', svg_code, re.IGNORECASE)
+        for poly in polygons:
+            points_match = re.search(r'points=["\']([^"\']+)["\']', poly)
+            if points_match:
+                points_str = points_match.group(1)
+                points = []
+                for pt in points_str.split():
+                    if ',' in pt:
+                        x, y = map(float, pt.split(','))
+                        points.append((x, y))
+                
+                # Escalar
+                vb_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_code)
+                if vb_match and points:
+                    vb = vb_match.group(1).split()
+                    if len(vb) == 4:
+                        vb_w, vb_h = float(vb[2]), float(vb[3])
+                        scale_x = width / vb_w
+                        scale_y = height / vb_h
+                        points = [(x * scale_x, y * scale_y) for x, y in points]
+                
+                fill_match = re.search(r'fill=["\']([^"\']+)["\']', poly)
+                fill = fill_match.group(1) if fill_match else 'black'
+                if len(points) >= 3:
+                    draw.polygon(points, fill=fill)
+        
+        # Texto básico: <text x="50" y="50" fill="black">Hola</text>
+        texts = re.findall(r'<text[^>]*>([^<]*)</text>', svg_code, re.IGNORECASE)
+        for i, text_content in enumerate(texts):
+            if text_content.strip():
+                # Buscar los atributos del texto actual
+                text_match = re.findall(r'<text[^>]*>', svg_code, re.IGNORECASE)[i]
+                x = float(re.search(r'x=["\']([^"\']+)["\']', text_match).group(1)) if re.search(r'x=["\']([^"\']+)["\']', text_match) else 50
+                y = float(re.search(r'y=["\']([^"\']+)["\']', text_match).group(1)) if re.search(r'y=["\']([^"\']+)["\']', text_match) else 50
+                fill_match = re.search(r'fill=["\']([^"\']+)["\']', text_match)
+                fill = fill_match.group(1) if fill_match else 'black'
+                
+                # Escalar
+                vb_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_code)
+                if vb_match:
+                    vb = vb_match.group(1).split()
+                    if len(vb) == 4:
+                        vb_w, vb_h = float(vb[2]), float(vb[3])
+                        scale_x = width / vb_w
+                        scale_y = height / vb_h
+                        x, y = x * scale_x, y * scale_y
+                
+                draw.text((x, y), text_content.strip(), fill=fill)
+        
+        # Guardar
+        img.save(output_path, 'PNG')
 
 
 
@@ -228,12 +372,14 @@ class ImageComparator:
         gray1 = np.dot(img1[..., :3], [0.2989, 0.5870, 0.1140])
         gray2 = np.dot(img2[..., :3], [0.2989, 0.5870, 0.1140])
 
-        # Calcular SSIM
-        score = ssim_func(
-            gray1, gray2, data_range=gray2.max() - gray2.min()
-        )
+        # Calcular SSIM con data_range correcto (255 para imágenes de 8 bits)
+        # Usar 255 como data_range porque las imágenes son de 0-255
+        score = ssim_func(gray1, gray2, data_range=255.0)
 
-        return float(score)
+        # Asegurar que el resultado está entre 0 y 1
+        score = max(0.0, min(1.0, float(score)))
+
+        return score
 
     def _calculate_pixel_similarity(
         self, img1: np.ndarray, img2: np.ndarray

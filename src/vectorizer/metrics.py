@@ -244,12 +244,13 @@ class MetricsEngine:
         gray1 = np.dot(img1[..., :3], [0.2989, 0.5870, 0.1140])
         gray2 = np.dot(img2[..., :3], [0.2989, 0.5870, 0.1140])
 
-        # Calcular SSIM
-        score = ssim_func(
-            gray1, gray2, data_range=gray2.max() - gray2.min()
-        )
+        # Calcular SSIM con data_range correcto (255 para imágenes de 8 bits)
+        score = ssim_func(gray1, gray2, data_range=255.0)
 
-        return float(score)
+        # Asegurar que el resultado está entre 0 y 1
+        score = max(0.0, min(1.0, float(score)))
+
+        return score
 
     def _calculate_pixel_similarity(
         self, img1: np.ndarray, img2: np.ndarray

@@ -44,8 +44,8 @@ class Vectorizer:
             quality_threshold: Umbral de calidad para detener.
             temp_dir: Directorio para archivos temporales.
             verbose: Mostrar información detallada.
-            provider: Proveedor de API ("anthropic", "openai", "openrouter", "google").
-            base_url: URL base personalizada (para OpenRouter, etc.).
+            provider: Proveedor de API ("anthropic", "openai", "openrouter", "google", "ollama", "lmstudio").
+            base_url: URL base personalizada (para OpenRouter, LM Studio, Ollama, etc.).
 
         Raises:
             ValueError: Si los parámetros son inválidos.
@@ -60,7 +60,7 @@ class Vectorizer:
         if not 0.0 <= quality_threshold <= 1.0:
             raise ValueError("quality_threshold debe estar entre 0.0 y 1.0")
         
-        if provider not in ["anthropic", "openai", "openrouter", "google"]:
+        if provider not in ["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]:
             raise ValueError(f"Proveedor no soportado: {provider}")
 
         self.api_key = api_key
@@ -170,11 +170,11 @@ class Vectorizer:
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"Iteracion {iteration}/{self.max_iterations}")
 
-            # Renderizar SVG a PNG
+            # Renderizar SVG a PNG usando dimensiones de la imagen original
             try:
                 temp_png = self.temp_dir / f"iteration_{iteration}.png"
                 self.image_comparator.render_svg(
-                    current_svg, str(temp_png), width=1024, height=1024
+                    current_svg, str(temp_png), source_image_path=str(input_file)
                 )
                 render_success = True
 
@@ -216,7 +216,7 @@ class Vectorizer:
 
             # Fase 4: Refinamiento con contexto
             logger.info("Refinando SVG...")
-            if render_success:
+            if render_success and comparison is not None:
                 modifications = self._generate_modifications(comparison)
                 # Agregar contexto de intentos previos
                 context = {
@@ -251,7 +251,7 @@ class Vectorizer:
         try:
             final_png = self.temp_dir / "final.png"
             self.image_comparator.render_svg(
-                optimized_svg, str(final_png), width=1024, height=1024
+                optimized_svg, str(final_png), source_image_path=str(input_file)
             )
             final_comparison = self.image_comparator.compare(
                 str(input_file), str(final_png)

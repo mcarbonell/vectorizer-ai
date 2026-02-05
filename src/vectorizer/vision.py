@@ -16,6 +16,7 @@ from tenacity import (
 )
 
 from .models import ImageAnalysis
+from .local_llm import create_local_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 class VisionAnalyzer:
     """Analiza imágenes usando APIs de visión."""
 
-    SUPPORTED_PROVIDERS = ["anthropic", "openai", "openrouter", "google"]
+    SUPPORTED_PROVIDERS = ["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]
 
     def __init__(
         self,
@@ -79,6 +80,14 @@ class VisionAnalyzer:
                 genai.configure(api_key=api_key)
                 self.client = genai
                 self._using_new_google_api = False
+        elif provider in ["ollama", "lmstudio"]:
+            # LLMs locales (Ollama y LM Studio)
+            self.client = create_local_client(
+                provider=provider,
+                model=model,
+                base_url=base_url,
+                timeout=120,
+            )
         else:
             raise ValueError(f"Proveedor no soportado: {provider}")
 
@@ -128,13 +137,18 @@ class VisionAnalyzer:
             response = await self._call_openai(image_data, prompt)
         elif self.provider == "google":
             response = await self._call_google(image_file, prompt)
+        elif self.provider in ["ollama", "lmstudio"]:
+            response = await self._call_local(image_file, prompt)
             # Guardar en caché
             if self.cache:
                 self.cache.set(cache_key, response.__dict__)
             return response
 
-        # Parsear respuesta
-        result = self._parse_analysis_response(response)
+        # Parsear respuesta (si no es ya un ImageAnalysis)
+        if isinstance(response, ImageAnalysis):
+            result = response
+        else:
+            result = self._parse_analysis_response(response)
         
         # Guardar en caché
         if self.cache:
@@ -346,6 +360,32 @@ class VisionAnalyzer:
                 return self._parse_analysis_response(response.text)
         except Exception as e:
             logger.error(f"Error llamando a Google: {e}")
+            raise
+
+    async def _call_local(
+        self, image_path: Path, prompt: str
+    ) -> ImageAnalysis:
+        """Llama a un LLM local (Ollama o LM Studio) con reintentos.
+
+        Args:
+            image_path: Ruta a la imagen.
+            prompt: Prompt para la API.
+
+        Returns:
+            ImageAnalysis con los datos.
+
+        Raises:
+            ConnectionError: Si falla la conexión después de reintentos.
+        """
+        try:
+            response = self.client.vision_completion(
+                image_path=str(image_path),
+                prompt=prompt,
+                max_tokens=1024,
+            )
+            return self._parse_analysis_response(response)
+        except Exception as e:
+            logger.error(f"Error llamando a LLM local ({self.provider}): {e}")
             raise
 
     def _parse_analysis_response(self, response: str) -> ImageAnalysis:
