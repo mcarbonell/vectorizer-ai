@@ -40,7 +40,7 @@ Ejemplo 2:
 Descripción: Texto "Hello" en azul
 SVG:
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
-  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" 
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
         font-family="Arial" font-size="24" fill="#0066CC">Hello</text>
 </svg>
 
@@ -49,21 +49,23 @@ Descripción: Logo con texto y forma
 SVG:
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
   <rect x="10" y="10" width="180" height="80" rx="10" fill="#F0F0F0"/>
-  <text x="100" y="55" text-anchor="middle" font-family="Arial" 
+  <text x="100" y="55" text-anchor="middle" font-family="Arial"
         font-size="20" font-weight="bold" fill="#333">LOGO</text>
 </svg>
 """
 
 
-def get_analysis_prompt(description: str, colors: list, shapes: list, style: str) -> str:
+def get_analysis_prompt(
+    description: str, colors: list, shapes: list, style: str
+) -> str:
     """Genera prompt mejorado para análisis con few-shot.
-    
+
     Args:
         description: Descripción de la imagen.
         colors: Colores principales.
         shapes: Formas principales.
         style: Estilo visual.
-    
+
     Returns:
         Prompt optimizado con ejemplos.
     """
@@ -86,8 +88,16 @@ def get_generation_prompt(analysis: dict, style: str = "flat") -> str:
     Returns:
         Prompt optimizado con ejemplos.
     """
-    shapes_str = ', '.join(analysis.get('shapes', [])) if analysis.get('shapes') else 'formas básicas'
-    colors_str = ', '.join(analysis.get('colors', [])) if analysis.get('colors') else 'colores apropiados'
+    shapes_str = (
+        ", ".join(analysis.get("shapes", []))
+        if analysis.get("shapes")
+        else "formas básicas"
+    )
+    colors_str = (
+        ", ".join(analysis.get("colors", []))
+        if analysis.get("colors")
+        else "colores apropiados"
+    )
 
     return f"""Genera un código SVG basado en el siguiente análisis:
 
@@ -108,7 +118,8 @@ REQUISITOS IMPORTANTES:
 6. Mantén el código limpio y legible
 7. NO incluyas comentarios en el SVG
 8. Devuelve SOLO el código SVG, sin explicaciones
-9. NO agregues elementos decorativos que no estén en la imagen original (rectángulos de borde, círculos decorativos, etc.)
+9. NO agregues elementos decorativos que no estén en la imagen original
+   (rectángulos de borde, círculos decorativos, etc.)
 10. Representa EXACTAMENTE lo que ves en la imagen, sin añadir nada extra
 11. Usa posicionamiento preciso basado en las proporciones de la imagen
 12. El viewBox debe coincidir con las dimensiones relativas de los elementos
@@ -116,7 +127,9 @@ REQUISITOS IMPORTANTES:
 Genera el SVG ahora:"""
 
 
-def get_modification_prompt(svg_code: str, modifications: list, context: dict = None) -> str:
+def get_modification_prompt(
+    svg_code: str, modifications: list, context: dict = None
+) -> str:
     """Genera prompt mejorado para modificación de SVG.
 
     Args:
@@ -127,12 +140,12 @@ def get_modification_prompt(svg_code: str, modifications: list, context: dict = 
     Returns:
         Prompt optimizado.
     """
-    mods_text = '\n'.join(f"- {mod}" for mod in modifications)
+    mods_text = "\n".join(f"- {mod}" for mod in modifications)
 
     context_text = ""
-    if context and context.get('previous_attempts'):
-        context_text = f"\n\nINTENTOS PREVIOS (evita repetir estos errores):\n"
-        for attempt in context['previous_attempts'][-2:]:  # Últimos 2 intentos
+    if context and context.get("previous_attempts"):
+        context_text = "\n\nINTENTOS PREVIOS (evita repetir estos errores):\n"
+        for attempt in context["previous_attempts"][-2:]:  # Últimos 2 intentos
             context_text += f"- {attempt}\n"
 
     return f"""Modifica el siguiente código SVG aplicando estos cambios específicos:

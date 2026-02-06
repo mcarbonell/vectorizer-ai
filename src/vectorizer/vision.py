@@ -10,13 +10,13 @@ from openai import OpenAI
 from PIL import Image
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
-from .models import ImageAnalysis
 from .local_llm import create_local_client
+from .models import ImageAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,14 @@ logger = logging.getLogger(__name__)
 class VisionAnalyzer:
     """Analiza imágenes usando APIs de visión."""
 
-    SUPPORTED_PROVIDERS = ["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]
+    SUPPORTED_PROVIDERS = [
+        "anthropic",
+        "openai",
+        "openrouter",
+        "google",
+        "ollama",
+        "lmstudio",
+    ]
 
     def __init__(
         self,
@@ -50,10 +57,11 @@ class VisionAnalyzer:
         self.provider = provider
         self.base_url = base_url
         self.enable_cache = enable_cache
-        
+
         # Inicializar caché
         if enable_cache:
             from .cache import CacheManager
+
             self.cache = CacheManager(cache_dir=".cache/vision", ttl=cache_ttl)
         else:
             self.cache = None
@@ -114,6 +122,7 @@ class VisionAnalyzer:
         # Verificar caché
         if self.cache:
             import hashlib
+
             with open(image_file, "rb") as f:
                 image_hash = hashlib.md5(f.read()).hexdigest()
             cache_key = self.cache.get_cache_key(image_hash, self.model, detail_level)
@@ -149,11 +158,11 @@ class VisionAnalyzer:
             result = response
         else:
             result = self._parse_analysis_response(response)
-        
+
         # Guardar en caché
         if self.cache:
             self.cache.set(cache_key, result.__dict__)
-        
+
         return result
 
     def _encode_image(self, image_path: Path) -> tuple[str, str, Image.Image]:
@@ -209,13 +218,10 @@ class VisionAnalyzer:
             Prompt para la API.
         """
         from .prompts import get_analysis_prompt
-        
+
         # Usar prompt mejorado con few-shot
         return get_analysis_prompt(
-            description="imagen a analizar",
-            colors=[],
-            shapes=[],
-            style=""
+            description="imagen a analizar", colors=[], shapes=[], style=""
         )
 
     @retry(
@@ -320,9 +326,7 @@ class VisionAnalyzer:
         retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         reraise=True,
     )
-    async def _call_google(
-        self, image_path: Path, prompt: str
-    ) -> ImageAnalysis:
+    async def _call_google(self, image_path: Path, prompt: str) -> ImageAnalysis:
         """Llama a la API de Google Gemini con reintentos.
 
         Args:
@@ -340,7 +344,6 @@ class VisionAnalyzer:
         try:
             if getattr(self, "_using_new_google_api", False):
                 from google import genai
-                from google.genai import types
 
                 client: genai.Client = self.client
 
@@ -362,9 +365,7 @@ class VisionAnalyzer:
             logger.error(f"Error llamando a Google: {e}")
             raise
 
-    async def _call_local(
-        self, image_path: Path, prompt: str
-    ) -> ImageAnalysis:
+    async def _call_local(self, image_path: Path, prompt: str) -> ImageAnalysis:
         """Llama a un LLM local (Ollama o LM Studio) con reintentos.
 
         Args:

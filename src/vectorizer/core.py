@@ -2,21 +2,19 @@
 
 import asyncio
 import logging
-from pathlib import Path
-from typing import Callable, Optional, List, Union
 import time
+from pathlib import Path
+from typing import Callable, List, Optional, Union
 
-from .vision import VisionAnalyzer
-from .svg_generator import SVGGenerator
 from .comparator import ImageComparator
 from .metrics import MetricsEngine
 from .models import (
-    VectorizationResult,
-    ImageAnalysis,
-    SVGGeneration,
-    ComparisonResult,
     BatchResult,
+    ComparisonResult,
+    VectorizationResult,
 )
+from .svg_generator import SVGGenerator
+from .vision import VisionAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +42,8 @@ class Vectorizer:
             quality_threshold: Umbral de calidad para detener.
             temp_dir: Directorio para archivos temporales.
             verbose: Mostrar información detallada.
-            provider: Proveedor de API ("anthropic", "openai", "openrouter", "google", "ollama", "lmstudio").
+            provider: Proveedor de API ("anthropic", "openai", "openrouter",
+                      "google", "ollama", "lmstudio").
             base_url: URL base personalizada (para OpenRouter, LM Studio, Ollama, etc.).
 
         Raises:
@@ -53,14 +52,21 @@ class Vectorizer:
         # Validar parámetros
         if not api_key or not api_key.strip():
             raise ValueError("API key no puede estar vacía")
-        
+
         if max_iterations < 1 or max_iterations > 100:
             raise ValueError("max_iterations debe estar entre 1 y 100")
-        
+
         if not 0.0 <= quality_threshold <= 1.0:
             raise ValueError("quality_threshold debe estar entre 0.0 y 1.0")
-        
-        if provider not in ["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]:
+
+        if provider not in [
+            "anthropic",
+            "openai",
+            "openrouter",
+            "google",
+            "ollama",
+            "lmstudio",
+        ]:
             raise ValueError(f"Proveedor no soportado: {provider}")
 
         self.api_key = api_key
@@ -122,10 +128,10 @@ class Vectorizer:
         input_file = Path(input_path)
         if not input_file.exists():
             raise FileNotFoundError(f"Archivo no encontrado: {input_path}")
-        
+
         if not input_file.is_file():
             raise ValueError(f"La ruta no es un archivo: {input_path}")
-        
+
         # Validar formato
         supported_formats = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"]
         if input_file.suffix.lower() not in supported_formats:
@@ -133,7 +139,7 @@ class Vectorizer:
                 f"Formato no soportado: {input_file.suffix}. "
                 f"Formatos soportados: {', '.join(supported_formats)}"
             )
-        
+
         # Validar tamaño de archivo (máximo 10MB)
         max_size = 10 * 1024 * 1024  # 10MB
         file_size = input_file.stat().st_size
@@ -142,7 +148,7 @@ class Vectorizer:
                 f"Archivo muy grande: {file_size / 1024 / 1024:.1f}MB. "
                 f"Máximo: {max_size / 1024 / 1024:.0f}MB"
             )
-        
+
         # Validar que output_path sea escribible
         output_file = Path(output_path)
         if output_file.exists() and not output_file.is_file():
@@ -166,7 +172,7 @@ class Vectorizer:
         # Fase 3: Iteraciones de refinamiento
         comparison = None
         iteration_history = []  # Historial de iteraciones
-        
+
         for iteration in range(1, self.max_iterations + 1):
             logger.info(f"Iteracion {iteration}/{self.max_iterations}")
 
@@ -179,17 +185,21 @@ class Vectorizer:
                 render_success = True
 
                 # Comparar con original
-                comparison = self.image_comparator.compare(str(input_file), str(temp_png))
+                comparison = self.image_comparator.compare(
+                    str(input_file), str(temp_png)
+                )
                 quality = comparison.quality_score
 
                 logger.info(f"Calidad actual: {quality:.4f}")
-                
+
                 # Guardar en historial
-                iteration_history.append({
-                    'iteration': iteration,
-                    'quality': quality,
-                    'modifications': [],
-                })
+                iteration_history.append(
+                    {
+                        "iteration": iteration,
+                        "quality": quality,
+                        "modifications": [],
+                    }
+                )
 
                 # Llamar callback si existe
                 if callback:
@@ -220,19 +230,23 @@ class Vectorizer:
                 modifications = self._generate_modifications(comparison)
                 # Agregar contexto de intentos previos
                 context = {
-                    'previous_attempts': [h.get('modifications', []) for h in iteration_history[-3:]],
-                    'best_quality': best_quality,
-                    'current_quality': quality,
+                    "previous_attempts": [
+                        h.get("modifications", []) for h in iteration_history[-3:]
+                    ],
+                    "best_quality": best_quality,
+                    "current_quality": quality,
                 }
             else:
                 modifications = ["Mejorar la representación SVG"]
                 context = {}
-            
+
             # Guardar modificaciones en historial
             if iteration_history:
-                iteration_history[-1]['modifications'] = modifications
-            
-            svg_gen = await self.svg_generator.modify(current_svg, modifications, context)
+                iteration_history[-1]["modifications"] = modifications
+
+            svg_gen = await self.svg_generator.modify(
+                current_svg, modifications, context
+            )
             current_svg = svg_gen.svg_code
 
         # Fase 5: Finalización - GUARDAR SVG SIEMPRE
@@ -265,8 +279,16 @@ class Vectorizer:
             quality=final_quality,
             iterations=iteration,
             metrics={
-                "ssim": getattr(final_comparison, 'ssim', 0.0) if 'final_comparison' in dir() else 0.0,
-                "clip_similarity": getattr(final_comparison, 'clip_similarity', 0.0) if 'final_comparison' in dir() else 0.0,
+                "ssim": (
+                    getattr(final_comparison, "ssim", 0.0)
+                    if "final_comparison" in dir()
+                    else 0.0
+                ),
+                "clip_similarity": (
+                    getattr(final_comparison, "clip_similarity", 0.0)
+                    if "final_comparison" in dir()
+                    else 0.0
+                ),
             },
             metadata={
                 "input_path": str(input_file),
@@ -331,7 +353,12 @@ class Vectorizer:
         """
         return asyncio.run(
             self.vectorize_batch_async(
-                input_paths, output_dir, callback, continue_on_error, parallel, max_workers
+                input_paths,
+                output_dir,
+                callback,
+                continue_on_error,
+                parallel,
+                max_workers,
             )
         )
 
@@ -346,64 +373,67 @@ class Vectorizer:
     ) -> BatchResult:
         """Versión asíncrona de vectorize_batch()."""
         start_time = time.time()
-        
+
         # Resolver input_paths
         if isinstance(input_paths, str):
             # Patrón glob
             from glob import glob
+
             resolved_paths = glob(input_paths, recursive=True)
             if not resolved_paths:
-                raise ValueError(f"No se encontraron archivos con el patrón: {input_paths}")
+                raise ValueError(
+                    f"No se encontraron archivos con el patrón: {input_paths}"
+                )
         else:
             resolved_paths = input_paths
-        
+
         if not resolved_paths:
             raise ValueError("input_paths no puede estar vacío")
-        
+
         # Validar output_dir
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-        
+
         if not output_path.is_dir():
             raise ValueError(f"output_dir no es un directorio válido: {output_dir}")
-        
+
         logger.info(f"Iniciando procesamiento batch de {len(resolved_paths)} imágenes")
-        
+
         results = []
         errors = []
         successful = 0
         failed = 0
-        
+
         # Procesar imágenes
         if parallel:
             # Modo paralelo (experimental)
             tasks = []
             for idx, input_file in enumerate(resolved_paths, 1):
                 task = self._process_single_image(
-                    input_file, output_path, idx, len(resolved_paths), 
-                    callback, continue_on_error
+                    input_file,
+                    output_path,
+                    idx,
+                    len(resolved_paths),
+                    callback,
+                    continue_on_error,
                 )
                 tasks.append(task)
-            
+
             # Limitar concurrencia
             semaphore = asyncio.Semaphore(max_workers)
-            
+
             async def bounded_task(task):
                 async with semaphore:
                     return await task
-            
+
             batch_results = await asyncio.gather(
-                *[bounded_task(task) for task in tasks],
-                return_exceptions=True
+                *[bounded_task(task) for task in tasks], return_exceptions=True
             )
-            
+
             for result in batch_results:
                 if isinstance(result, Exception):
                     failed += 1
-                    errors.append({
-                        "file": "unknown",
-                        "error": str(result)
-                    })
+                    errors.append({"file": "unknown", "error": str(result)})
                 elif result.get("success"):
                     successful += 1
                     results.append(result)
@@ -414,24 +444,28 @@ class Vectorizer:
             # Modo secuencial
             for idx, input_file in enumerate(resolved_paths, 1):
                 result = await self._process_single_image(
-                    input_file, output_path, idx, len(resolved_paths),
-                    callback, continue_on_error
+                    input_file,
+                    output_path,
+                    idx,
+                    len(resolved_paths),
+                    callback,
+                    continue_on_error,
                 )
-                
+
                 if result.get("success"):
                     successful += 1
                     results.append(result)
                 else:
                     failed += 1
                     errors.append(result.get("error", {}))
-        
+
         elapsed_time = time.time() - start_time
-        
+
         logger.info(
             f"Procesamiento batch completado: {successful} exitosos, "
             f"{failed} fallidos en {elapsed_time:.2f}s"
         )
-        
+
         return BatchResult(
             total=len(resolved_paths),
             successful=successful,
@@ -443,7 +477,7 @@ class Vectorizer:
                 "parallel": parallel,
                 "max_workers": max_workers if parallel else 1,
                 "output_dir": str(output_path),
-            }
+            },
         )
 
     async def _process_single_image(
@@ -471,24 +505,26 @@ class Vectorizer:
         input_path = Path(input_file)
         filename = input_path.stem
         output_file = output_dir / f"{filename}.svg"
-        
+
         logger.info(f"[{current}/{total}] Procesando: {input_path.name}")
-        
+
         try:
             # Vectorizar imagen
             result = await self.vectorize_async(
                 str(input_path),
                 str(output_file),
-                callback=lambda iter, qual: callback(
-                    input_path.name, current, total, qual
-                ) if callback else None
+                callback=lambda iter, qual: (
+                    callback(input_path.name, current, total, qual)
+                    if callback
+                    else None
+                ),
             )
-            
+
             logger.info(
                 f"[{current}/{total}] ✓ {input_path.name} - "
                 f"Calidad: {result.quality:.4f}, Iteraciones: {result.iterations}"
             )
-            
+
             return {
                 "success": True,
                 "input": str(input_path),
@@ -498,13 +534,13 @@ class Vectorizer:
                 "iterations": result.iterations,
                 "metrics": result.metrics,
             }
-            
+
         except Exception as e:
             logger.error(f"[{current}/{total}] ✗ {input_path.name} - Error: {e}")
-            
+
             if not continue_on_error:
                 raise
-            
+
             return {
                 "success": False,
                 "error": {
@@ -512,5 +548,5 @@ class Vectorizer:
                     "filename": input_path.name,
                     "error": str(e),
                     "type": type(e).__name__,
-                }
+                },
             }

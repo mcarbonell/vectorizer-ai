@@ -51,7 +51,9 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--provider",
     "-p",
-    type=click.Choice(["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]),
+    type=click.Choice(
+        ["anthropic", "openai", "openrouter", "google", "ollama", "lmstudio"]
+    ),
     default="anthropic",
     help="Proveedor de API",
 )
@@ -134,15 +136,15 @@ def main(
         click.echo(
             f"Error: API key no encontrada para {provider}. "
             f"Usa --api-key o configura la variable de entorno correspondiente.",
-            err=True
+            err=True,
         )
         raise click.Abort()
-    
+
     # Validar parámetros
     if max_iterations < 1 or max_iterations > 100:
         click.echo("Error: max-iterations debe estar entre 1 y 100", err=True)
         raise click.Abort()
-    
+
     if not 0.0 <= quality_threshold <= 1.0:
         click.echo("Error: quality-threshold debe estar entre 0.0 y 1.0", err=True)
         raise click.Abort()
@@ -156,52 +158,54 @@ def main(
     click.echo(f"Modelo: {model}")
     click.echo(f"Max iteraciones: {max_iterations}")
     click.echo(f"Calidad threshold: {quality_threshold}")
-    
+
     if batch:
-        click.echo(f"Modo: Batch")
+        click.echo("Modo: Batch")
         click.echo(f"Patrón/Lista: {input}")
         click.echo(f"Output dir: {output}")
         if parallel:
             click.echo(f"Paralelo: Sí (max {max_workers} workers)")
         else:
-            click.echo(f"Paralelo: No")
+            click.echo("Paralelo: No")
     else:
         click.echo(f"Input: {input}")
         click.echo(f"Output: {output}")
-    
+
     click.echo(f"Temp dir: {temp_dir}")
     click.echo(f"Verbose: {verbose}")
 
     if base_url:
         click.echo(f"Base URL: {base_url}")
-    
-    # Estimación de costo
+
     if estimate_cost:
-        from pathlib import Path
         from vectorizer.cost_estimator import CostEstimator
-        
+
         if batch:
             from glob import glob
+
             files = glob(input, recursive=True) if isinstance(input, str) else input
             num_files = len(files)
             click.echo(f"\nArchivos encontrados: {num_files}")
         else:
             num_files = 1
-        
+
         input_file = Path(input) if not batch else None
         if input_file and input_file.exists():
             size_kb = input_file.stat().st_size / 1024
         else:
             size_kb = 100  # Default
-        
+
         estimator = CostEstimator(provider=provider, model=model)
         estimate_str = estimator.format_estimate(size_kb, max_iterations)
-        
+
         click.echo("")
         click.echo("=" * 50)
         click.echo(estimate_str)
         if batch and num_files > 1:
-            click.echo(f"\nCosto total estimado (x{num_files} imágenes): multiplicar por {num_files}")
+            click.echo(
+                f"\nCosto total estimado (x{num_files} imágenes): "
+                f"multiplicar por {num_files}"
+            )
         click.echo("=" * 50)
         return
 
@@ -223,11 +227,13 @@ def main(
             click.echo("\n" + "=" * 50)
             click.echo("Iniciando procesamiento batch...")
             click.echo("=" * 50 + "\n")
-            
+
             # Progress callback
-            def batch_callback(filename: str, current: int, total: int, quality: float) -> None:
+            def batch_callback(
+                filename: str, current: int, total: int, quality: float
+            ) -> None:
                 click.echo(f"[{current}/{total}] {filename} - Calidad: {quality:.4f}")
-            
+
             # Run batch vectorization
             result = vectorizer.vectorize_batch(
                 input_paths=input,
@@ -237,7 +243,7 @@ def main(
                 parallel=parallel,
                 max_workers=max_workers,
             )
-            
+
             # Show results
             click.echo("")
             click.echo("=" * 50)
@@ -247,28 +253,37 @@ def main(
             click.echo(f"Exitosos: {result.successful}")
             click.echo(f"Fallidos: {result.failed}")
             click.echo(f"Tiempo: {result.metadata.get('elapsed_time', 0):.2f}s")
-            
+
             if result.successful > 0:
-                avg_quality = sum(r['quality'] for r in result.results) / len(result.results)
-                avg_iterations = sum(r['iterations'] for r in result.results) / len(result.results)
+                avg_quality = sum(r["quality"] for r in result.results) / len(
+                    result.results
+                )
+                avg_iterations = sum(r["iterations"] for r in result.results) / len(
+                    result.results
+                )
                 click.echo(f"Calidad promedio: {avg_quality:.4f}")
                 click.echo(f"Iteraciones promedio: {avg_iterations:.1f}")
-            
+
             if result.errors:
                 click.echo(f"\nErrores ({len(result.errors)}):")
                 for error in result.errors[:5]:  # Mostrar primeros 5
-                    click.echo(f"  - {error.get('filename', 'unknown')}: {error.get('error', 'unknown')}")
+                    click.echo(
+                        f"  - {error.get('filename', 'unknown')}: "
+                        f"{error.get('error', 'unknown')}"
+                    )
                 if len(result.errors) > 5:
                     click.echo(f"  ... y {len(result.errors) - 5} más")
-            
+
             click.echo(f"\nSVGs guardados en: {output}")
             click.echo("=" * 50)
-            
+
         else:
             # Modo single
             # Progress callback
             def progress_callback(iteration: int, quality: float) -> None:
-                click.echo(f"Iteracion {iteration}/{max_iterations} - Calidad: {quality:.4f}")
+                click.echo(
+                    f"Iteracion {iteration}/{max_iterations} - Calidad: {quality:.4f}"
+                )
 
             # Run vectorization
             result = vectorizer.vectorize(input, output, callback=progress_callback)

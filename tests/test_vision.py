@@ -1,10 +1,12 @@
 """Tests para el módulo vision."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 from PIL import Image
-from vectorizer.vision import VisionAnalyzer
+
 from vectorizer.models import ImageAnalysis
+from vectorizer.vision import VisionAnalyzer
 
 
 @pytest.fixture
@@ -52,7 +54,7 @@ class TestEncodeImage:
         """Test codificación de PNG."""
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         media_type, base64_data, pil_image = analyzer._encode_image(Path(temp_image))
-        
+
         assert media_type == "image/png"
         assert len(base64_data) > 0
         assert isinstance(pil_image, Image.Image)
@@ -61,10 +63,10 @@ class TestEncodeImage:
         """Test codificación de JPG."""
         img_path = tmp_path / "test.jpg"
         Image.new("RGB", (100, 100), color="blue").save(img_path)
-        
+
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         media_type, _, _ = analyzer._encode_image(Path(img_path))
-        
+
         assert media_type == "image/jpeg"
 
 
@@ -106,7 +108,7 @@ class TestCreateAnalysisPrompt:
         """Test creación de prompt nivel medio."""
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         prompt = analyzer._create_analysis_prompt("medium")
-        
+
         assert "Analiza esta imagen" in prompt
         assert "JSON" in prompt
         assert "shapes" in prompt
@@ -116,13 +118,12 @@ class TestCreateAnalysisPrompt:
         """Test creación de prompt nivel alto."""
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         prompt = analyzer._create_analysis_prompt("high")
-        
+
         # El prompt actual usa few-shot examples y solicita análisis estructurado
         assert "Analiza esta imagen" in prompt
         assert "JSON" in prompt
         assert "shapes" in prompt
         assert "colors" in prompt
-
 
 
 class TestParseAnalysisResponse:
@@ -139,9 +140,9 @@ class TestParseAnalysisResponse:
             "style": "flat",
             "description": "Test image"
         }"""
-        
+
         result = analyzer._parse_analysis_response(response)
-        
+
         assert isinstance(result, ImageAnalysis)
         assert result.shapes == ["circle", "rectangle"]
         assert result.colors == ["#FF0000", "#00FF00"]
@@ -160,9 +161,9 @@ class TestParseAnalysisResponse:
             "description": "Test"
         }
         Hope this helps!"""
-        
+
         result = analyzer._parse_analysis_response(response)
-        
+
         assert isinstance(result, ImageAnalysis)
         assert result.shapes == ["circle"]
 
@@ -170,9 +171,9 @@ class TestParseAnalysisResponse:
         """Test fallback cuando JSON es inválido."""
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         response = "This is not JSON at all"
-        
+
         result = analyzer._parse_analysis_response(response)
-        
+
         assert isinstance(result, ImageAnalysis)
         assert result.shapes == []
         assert result.composition == "desconocida"
@@ -185,9 +186,9 @@ class TestParseAnalysisResponse:
             "shapes": ["circle"],
             "colors": ["#FF0000"]
         }"""
-        
+
         result = analyzer._parse_analysis_response(response)
-        
+
         assert result.shapes == ["circle"]
         assert result.composition == "desconocida"  # Valor por defecto
 
@@ -198,24 +199,35 @@ class TestAnalyze:
     def test_analyze_file_not_found(self):
         """Test que lanza error si archivo no existe."""
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
-        
+
         with pytest.raises(FileNotFoundError):
             import asyncio
+
             asyncio.run(analyzer.analyze("/path/that/does/not/exist.png"))
 
     @pytest.mark.asyncio
     async def test_analyze_with_mock_anthropic(self, temp_image):
         """Test analyze con mock de Anthropic."""
         from unittest.mock import Mock, patch
-        
+
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
-        
+
         mock_response = Mock()
-        mock_response.content = [Mock(text='{"shapes": ["circle"], "colors": ["#FF0000"], "composition": "centered", "complexity": "simple", "style": "flat", "description": "Test"}')]
-        
-        with patch.object(analyzer.client.messages, 'create', return_value=mock_response):
+        mock_response.content = [
+            Mock(
+                text=(
+                    '{"shapes": ["circle"], "colors": ["#FF0000"], '
+                    '"composition": "centered", "complexity": "simple", '
+                    '"style": "flat", "description": "Test"}'
+                )
+            )
+        ]
+
+        with patch.object(
+            analyzer.client.messages, "create", return_value=mock_response
+        ):
             result = await analyzer.analyze(temp_image)
-            
+
             assert isinstance(result, ImageAnalysis)
             assert result.shapes == ["circle"]
             assert result.colors == ["#FF0000"]
@@ -224,32 +236,54 @@ class TestAnalyze:
     async def test_analyze_with_mock_openai(self, temp_image):
         """Test analyze con mock de OpenAI."""
         from unittest.mock import Mock, patch
-        
+
         analyzer = VisionAnalyzer(api_key="test-key", provider="openai")
-        
+
         mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content='{"shapes": [], "colors": [], "composition": "test", "complexity": "simple", "style": "flat", "description": "Test"}'))]
-        
-        with patch.object(analyzer.client.chat.completions, 'create', return_value=mock_response):
+        mock_response.choices = [
+            Mock(
+                message=Mock(
+                    content=(
+                        '{"shapes": [], "colors": [], "composition": "test", '
+                        '"complexity": "simple", "style": "flat", '
+                        '"description": "Test"}'
+                    )
+                )
+            )
+        ]
+
+        with patch.object(
+            analyzer.client.chat.completions, "create", return_value=mock_response
+        ):
             result = await analyzer.analyze(temp_image)
-            
+
             assert isinstance(result, ImageAnalysis)
 
     @pytest.mark.asyncio
     async def test_analyze_detail_levels(self, temp_image):
         """Test diferentes niveles de detalle."""
         from unittest.mock import Mock, patch
-        
+
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
-        
+
         mock_response = Mock()
-        mock_response.content = [Mock(text='{"shapes": [], "colors": [], "composition": "test", "complexity": "simple", "style": "flat", "description": "Test"}')]
-        
-        with patch.object(analyzer.client.messages, 'create', return_value=mock_response):
+        mock_response.content = [
+            Mock(
+                text=(
+                    '{"shapes": [], "colors": [], "composition": "test", '
+                    '"complexity": "simple", "style": "flat", '
+                    '"description": "Test"}'
+                )
+            )
+        ]
+
+        with patch.object(
+            analyzer.client.messages, "create", return_value=mock_response
+        ):
             # Test low detail
             result = await analyzer.analyze(temp_image, detail_level="low")
             assert isinstance(result, ImageAnalysis)
-            
+
             # Test high detail
             result = await analyzer.analyze(temp_image, detail_level="high")
             assert isinstance(result, ImageAnalysis)

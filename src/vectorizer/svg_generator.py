@@ -6,12 +6,11 @@ from typing import List, Optional
 
 import anthropic
 from openai import OpenAI
-from PIL import Image
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from .models import ImageAnalysis, SVGGeneration
@@ -188,9 +187,7 @@ class SVGGenerator:
 
         return optimized.strip()
 
-    def _create_generation_prompt(
-        self, analysis: ImageAnalysis, style: str
-    ) -> str:
+    def _create_generation_prompt(self, analysis: ImageAnalysis, style: str) -> str:
         """Crea el prompt para generación de SVG.
 
         Args:
@@ -201,16 +198,16 @@ class SVGGenerator:
             Prompt para la API.
         """
         from .prompts import get_generation_prompt
-        
+
         # Usar prompt mejorado con few-shot
         return get_generation_prompt(
             analysis={
-                'description': analysis.description,
-                'shapes': analysis.shapes,
-                'colors': analysis.colors,
-                'composition': analysis.composition,
+                "description": analysis.description,
+                "shapes": analysis.shapes,
+                "colors": analysis.colors,
+                "composition": analysis.composition,
             },
-            style=style
+            style=style,
         )
 
     def _create_modification_prompt(
@@ -227,7 +224,7 @@ class SVGGenerator:
             Prompt para la API.
         """
         from .prompts import get_modification_prompt
-        
+
         # Usar prompt mejorado con contexto
         return get_modification_prompt(svg_code, modifications, context)
 
@@ -376,7 +373,9 @@ class SVGGenerator:
                         return svg_code
 
         # Método 2: Etiquetas SVG completas
-        svg_match = re.search(r"<svg[^>]*>.*?</svg>", response, re.DOTALL | re.IGNORECASE)
+        svg_match = re.search(
+            r"<svg[^>]*>.*?</svg>", response, re.DOTALL | re.IGNORECASE
+        )
         if svg_match:
             logger.debug("SVG extraído con regex estándar")
             return svg_match.group(0)
@@ -425,7 +424,7 @@ class SVGGenerator:
         # Verificar cierre (</svg> o auto-cerrado)
         has_closing = re.search(r"</svg>", svg_code, re.IGNORECASE)
         has_self_closing = re.search(r"<svg[^>]*/>", svg_code, re.IGNORECASE)
-        
+
         if not has_closing and not has_self_closing:
             logger.warning("SVG sin cierre")
             return False
@@ -453,10 +452,8 @@ class SVGGenerator:
             Código SVG simple.
         """
         # Usar el primer color disponible o un color por defecto
-        color = (
-            analysis.colors[0] if analysis.colors else "#000000"
-        )
+        color = analysis.colors[0] if analysis.colors else "#000000"
 
-        return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <rect width="100" height="100" fill="{color}"/>
-</svg>'''
+</svg>"""

@@ -48,20 +48,20 @@ class CacheManager:
             Valor cacheado o None si no existe o expiró.
         """
         cache_file = self.cache_dir / f"{key}.json"
-        
+
         if not cache_file.exists():
             logger.debug(f"Cache miss: {key}")
             return None
 
         try:
             data = json.loads(cache_file.read_text(encoding="utf-8"))
-            
+
             # Verificar TTL
             if time.time() - data["timestamp"] > self.ttl:
                 logger.debug(f"Cache expired: {key}")
                 cache_file.unlink(missing_ok=True)
                 return None
-            
+
             logger.debug(f"Cache hit: {key}")
             return data["value"]
         except Exception as e:
@@ -76,15 +76,11 @@ class CacheManager:
             value: Valor a cachear.
         """
         cache_file = self.cache_dir / f"{key}.json"
-        
+
         try:
-            data = {
-                "timestamp": time.time(),
-                "value": value
-            }
+            data = {"timestamp": time.time(), "value": value}
             cache_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8"
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             logger.debug(f"Cache saved: {key}")
         except Exception as e:
@@ -111,7 +107,7 @@ class CacheManager:
         """
         count = 0
         current_time = time.time()
-        
+
         for cache_file in self.cache_dir.glob("*.json"):
             try:
                 data = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -122,7 +118,7 @@ class CacheManager:
                 # Si hay error, eliminar archivo corrupto
                 cache_file.unlink()
                 count += 1
-        
+
         if count > 0:
             logger.info(f"Expired cache cleared: {count} files")
         return count

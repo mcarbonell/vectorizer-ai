@@ -1,9 +1,9 @@
 """Tests para el módulo svg_generator."""
 
 import pytest
-from vectorizer.svg_generator import SVGGenerator
-from vectorizer.models import ImageAnalysis, SVGGeneration
 
+from vectorizer.models import ImageAnalysis, SVGGeneration
+from vectorizer.svg_generator import SVGGenerator
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def sample_analysis():
         composition="centered",
         complexity="simple",
         style="flat",
-        description="Test image"
+        description="Test image",
     )
 
 
@@ -120,7 +120,7 @@ class TestValidateSVG:
 
     def test_validate_no_opening_tag(self, generator):
         """Test validación sin etiqueta de apertura."""
-        svg = '<rect/></svg>'
+        svg = "<rect/></svg>"
         assert generator._validate_svg(svg) is False
 
     def test_validate_no_closing_tag(self, generator):
@@ -151,20 +151,20 @@ class TestOptimize:
 
     def test_optimize_removes_comments(self, generator):
         """Test que elimina comentarios."""
-        svg = '<svg><!-- comment --><rect/></svg>'
+        svg = "<svg><!-- comment --><rect/></svg>"
         optimized = generator.optimize(svg)
         assert "<!--" not in optimized
         assert "comment" not in optimized
 
     def test_optimize_removes_whitespace(self, generator):
         """Test que elimina espacios extra."""
-        svg = '<svg>  <rect/>  </svg>'
+        svg = "<svg>  <rect/>  </svg>"
         optimized = generator.optimize(svg, level="medium")
-        assert optimized == '<svg><rect/></svg>'
+        assert optimized == "<svg><rect/></svg>"
 
     def test_optimize_low_level(self, generator):
         """Test optimización nivel bajo."""
-        svg = '<svg><!-- comment --><rect/></svg>'
+        svg = "<svg><!-- comment --><rect/></svg>"
         optimized = generator.optimize(svg, level="low")
         assert "<!--" not in optimized
 
@@ -192,7 +192,7 @@ class TestCreateFallbackSVG:
             composition="",
             complexity="",
             style="",
-            description=""
+            description="",
         )
         svg = generator._create_fallback_svg(analysis)
         assert "<svg" in svg
@@ -206,15 +206,19 @@ class TestGenerateAndModify:
     async def test_generate_with_mock(self, sample_analysis):
         """Test generate con mock de API."""
         from unittest.mock import Mock, patch
-        
+
         generator = SVGGenerator(api_key="test-key", provider="anthropic")
-        
+
         mock_response = Mock()
-        mock_response.content = [Mock(text='<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')]
-        
-        with patch.object(generator.anthropic_client.messages, 'create', return_value=mock_response):
+        mock_response.content = [
+            Mock(text='<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')
+        ]
+
+        with patch.object(
+            generator.anthropic_client.messages, "create", return_value=mock_response
+        ):
             result = await generator.generate(sample_analysis)
-            
+
             assert isinstance(result, SVGGeneration)
             assert "<svg" in result.svg_code
 
@@ -222,15 +226,17 @@ class TestGenerateAndModify:
     async def test_generate_with_invalid_response(self, sample_analysis):
         """Test generate con respuesta inválida usa fallback."""
         from unittest.mock import Mock, patch
-        
+
         generator = SVGGenerator(api_key="test-key", provider="anthropic")
-        
+
         mock_response = Mock()
-        mock_response.content = [Mock(text='This is not SVG')]
-        
-        with patch.object(generator.anthropic_client.messages, 'create', return_value=mock_response):
+        mock_response.content = [Mock(text="This is not SVG")]
+
+        with patch.object(
+            generator.anthropic_client.messages, "create", return_value=mock_response
+        ):
             result = await generator.generate(sample_analysis)
-            
+
             # Debe usar fallback
             assert isinstance(result, SVGGeneration)
             assert "<svg" in result.svg_code
@@ -239,16 +245,20 @@ class TestGenerateAndModify:
     async def test_modify_with_mock(self):
         """Test modify con mock de API."""
         from unittest.mock import Mock, patch
-        
+
         generator = SVGGenerator(api_key="test-key", provider="anthropic")
-        
+
         original_svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'
         mock_response = Mock()
-        mock_response.content = [Mock(text='<svg xmlns="http://www.w3.org/2000/svg"><circle/></svg>')]
-        
-        with patch.object(generator.anthropic_client.messages, 'create', return_value=mock_response):
+        mock_response.content = [
+            Mock(text='<svg xmlns="http://www.w3.org/2000/svg"><circle/></svg>')
+        ]
+
+        with patch.object(
+            generator.anthropic_client.messages, "create", return_value=mock_response
+        ):
             result = await generator.modify(original_svg, ["Add circle"])
-            
+
             assert isinstance(result, SVGGeneration)
             assert "<svg" in result.svg_code
 
@@ -256,15 +266,17 @@ class TestGenerateAndModify:
     async def test_modify_with_invalid_response_returns_original(self):
         """Test modify con respuesta inválida retorna original."""
         from unittest.mock import Mock, patch
-        
+
         generator = SVGGenerator(api_key="test-key", provider="anthropic")
-        
+
         original_svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'
         mock_response = Mock()
-        mock_response.content = [Mock(text='Invalid response')]
-        
-        with patch.object(generator.anthropic_client.messages, 'create', return_value=mock_response):
+        mock_response.content = [Mock(text="Invalid response")]
+
+        with patch.object(
+            generator.anthropic_client.messages, "create", return_value=mock_response
+        ):
             result = await generator.modify(original_svg, ["Change"])
-            
+
             # Debe retornar original
             assert result.svg_code == original_svg

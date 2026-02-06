@@ -98,9 +98,7 @@ class CostEstimator:
             "tokens": tokens,
         }
 
-    def format_estimate(
-        self, image_size_kb: float, max_iterations: int
-    ) -> str:
+    def format_estimate(self, image_size_kb: float, max_iterations: int) -> str:
         """Formatea estimación para mostrar.
 
         Args:
@@ -117,7 +115,9 @@ class CostEstimator:
 
         return (
             f"Costo estimado: ${estimate['total']:.4f}\n"
-            f"  - Input: ${estimate['input']:.4f} ({estimate['tokens']['input']} tokens)\n"
-            f"  - Output: ${estimate['output']:.4f} ({estimate['tokens']['output']} tokens)\n"
+            f"  - Input: ${estimate['input']:.4f} "
+            f"({estimate['tokens']['input']} tokens)\n"
+            f"  - Output: ${estimate['output']:.4f} "
+            f"({estimate['tokens']['output']} tokens)\n"
             f"  - Proveedor: {self.provider}/{self.model}"
         )
