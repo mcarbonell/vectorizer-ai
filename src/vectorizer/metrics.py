@@ -1,14 +1,30 @@
+from __future__ import annotations
 """Módulo de métricas de calidad para Vectorizer AI."""
 
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
 
 from .models import ComparisonResult
 
+if TYPE_CHECKING:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torchvision import transforms
+
 logger = logging.getLogger(__name__)
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from torchvision import transforms
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 
 class MetricsEngine:
@@ -99,11 +115,16 @@ class MetricsEngine:
             f"Calculando LPIPS: {image1_path} vs {image2_path}"
         )
 
-        try:
-            import torch
-            import torch.nn.functional as F
-            from torchvision import transforms
+        if not HAS_TORCH:
+            logger.warning(
+                "PyTorch no disponible. Instala con: pip install vectorizer-ai[ml]"
+            )
+            img1 = self._load_image(image1_path)
+            img2 = self._load_image(image2_path)
+            img1, img2 = self._resize_to_match(img1, img2)
+            return self._calculate_pixel_similarity(img1, img2)
 
+        try:
             # Cargar imágenes
             img1 = self._load_image(image1_path)
             img2 = self._load_image(image2_path)
@@ -141,11 +162,8 @@ class MetricsEngine:
 
             return similarity
 
-        except ImportError:
-            logger.warning("PyTorch no disponible. Instala con: pip install vectorizer-ai[ml]")
-            img1 = self._load_image(image1_path)
-            img2 = self._load_image(image2_path)
-            img1, img2 = self._resize_to_match(img1, img2)
+        except Exception as e:
+            logger.error(f"Error calculando LPIPS: {e}")
             return self._calculate_pixel_similarity(img1, img2)
 
     def calculate_quality_score(
@@ -285,7 +303,8 @@ class MetricsEngine:
         Returns:
             Tensor de características.
         """
-        import torch.nn as nn
+        if not HAS_TORCH:
+            raise RuntimeError("PyTorch no disponible")
 
         # Red convolucional simple para extraer características
         features = nn.Sequential(
