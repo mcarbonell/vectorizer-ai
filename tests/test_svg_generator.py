@@ -2,7 +2,8 @@
 
 import pytest
 from vectorizer.svg_generator import SVGGenerator
-from vectorizer.models import ImageAnalysis
+from vectorizer.models import ImageAnalysis, SVGGeneration
+
 
 
 @pytest.fixture

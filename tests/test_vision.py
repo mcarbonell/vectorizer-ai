@@ -117,8 +117,12 @@ class TestCreateAnalysisPrompt:
         analyzer = VisionAnalyzer(api_key="test-key", provider="anthropic")
         prompt = analyzer._create_analysis_prompt("high")
         
-        assert "decorativos" in prompt
-        assert "Gradientes" in prompt
+        # El prompt actual usa few-shot examples y solicita análisis estructurado
+        assert "Analiza esta imagen" in prompt
+        assert "JSON" in prompt
+        assert "shapes" in prompt
+        assert "colors" in prompt
+
 
 
 class TestParseAnalysisResponse:
