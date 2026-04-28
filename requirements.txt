@@ -1,0 +1,7 @@
+torch
+torchvision
+matplotlib
+numpy
+Pillow
+# Opcional para aceleración en GPU AMD
+# torch-directml 
