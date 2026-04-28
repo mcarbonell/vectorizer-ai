@@ -23,9 +23,7 @@ wheels/
 
 # Data and Results
 data/
-results/
-*.png
-*.jpg
+
 
 # Environments
 .venv/
