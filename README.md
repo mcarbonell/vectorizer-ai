@@ -16,7 +16,7 @@ A neural-network-based image vectorizer that "paints" an image using differentia
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/vectorizer-ai.git
+   git clone https://github.com/mcarbonell/vectorizer-ai.git
    cd vectorizer-ai
    ```
 
